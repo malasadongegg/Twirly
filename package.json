@@ -1,7 +1,7 @@
 {
   "name": "twirly",
   "productName": "Twirly",
-  "version": "0.1.0",
+  "version": "0.1.0-beta.1",
   "private": true,
   "description": "Radial file action launcher for Windows",
   "author": "Mark",
@@ -57,5 +57,6 @@
     "vite": "^8.3.4",
     "vitest": "^5.0.5",
     "zustand": "^5.0.15"
-  }
+  },
+  "license": "MIT"
 }

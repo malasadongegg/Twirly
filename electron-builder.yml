@@ -47,3 +47,4 @@ nsis:
   deleteAppDataOnUninstall: false
   include: build/installer.nsh
   artifactName: Twirly-Setup-${version}.${ext}
+publish: null
