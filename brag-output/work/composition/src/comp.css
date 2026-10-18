@@ -1,0 +1,14 @@
+@import '../../../../apps/desktop/src/renderer/styles/tokens.css';
+@source '../../../../apps/desktop/src/renderer';
+@source './';
+
+html,
+body,
+#root {
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+}
+body {
+  background: #0b0f14;
+}

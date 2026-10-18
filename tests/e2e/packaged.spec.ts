@@ -1,0 +1,71 @@
+/// <reference lib="dom" />
+import { existsSync } from 'node:fs'
+import { mkdir, rm, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import { _electron as electron, expect, test, type ElectronApplication, type Page } from '@playwright/test'
+import sharp from 'sharp'
+import { PDFDocument, StandardFonts } from 'pdf-lib'
+
+// Smoke test of the PACKAGED app (release/win-unpacked). Run after `npm run dist:dir`.
+// TWIRLY_EXE lets the same smoke test run against an installed copy.
+const exe = process.env.TWIRLY_EXE || join(process.cwd(), 'release', 'win-unpacked', 'Twirly.exe')
+const work = join(process.cwd(), 'tests', '.tmp', 'packaged')
+
+test.skip(!existsSync(exe), 'packaged app not built (npm run dist:dir)')
+
+let app: ElectronApplication
+let home: Page
+
+test.beforeAll(async () => {
+  await rm(work, { recursive: true, force: true })
+  await mkdir(work, { recursive: true })
+  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => k !== 'ELECTRON_RUN_AS_NODE')) as Record<string, string>
+  env.TWIRLY_USER_DATA = join(work, 'user-data')
+  app = await electron.launch({ executablePath: exe, args: [], env })
+  home = await (async () => {
+    for (;;) {
+      const w = app.windows().find((p) => p.url().endsWith('/index.html'))
+      if (w) return w
+      await app.waitForEvent('window')
+    }
+  })()
+  await home.waitForSelector('[data-testid="drop-zone"]')
+})
+
+test.afterAll(async () => {
+  await app?.close()
+})
+
+async function runViaWheel(file: string, segment: string) {
+  await app.evaluate(({ dialog }, p) => {
+    dialog.showOpenDialog = (async () => ({ canceled: false, filePaths: [p] })) as typeof dialog.showOpenDialog
+  }, file)
+  await home.getByRole('button', { name: /Browse files/ }).click()
+  await home.getByTestId(`wheel-segment-${segment}`).click()
+  await expect(home.getByTestId('job-toast')).toHaveAttribute('data-status', 'done', { timeout: 30_000 })
+  await expect(home.getByTestId('job-toast')).toBeHidden({ timeout: 5000 })
+}
+
+test('packaged: is packaged, helper runs from resources, sharp works from asar.unpacked', async () => {
+  expect(await app.evaluate(({ app }) => app.isPackaged)).toBe(true)
+  // The helper starts asynchronously right after launch.
+  await expect.poll(async () => (await home.evaluate(() => window.twirly.diagnostics())).helper.state, { timeout: 10_000 }).toBe('running')
+  const diag = await home.evaluate(() => window.twirly.diagnostics())
+  expect(diag.capabilities.imageOutput).toEqual(expect.arrayContaining(['png', 'jpeg', 'webp', 'avif', 'bmp']))
+
+  const png = join(work, 'p.png')
+  await sharp({ create: { width: 50, height: 40, channels: 3, background: '#3b82f6' } }).png().toFile(png)
+  await runViaWheel(png, 'image.convert.webp')
+  expect((await sharp(join(work, 'p-converted.webp')).metadata()).format).toBe('webp')
+})
+
+test('packaged: pdf.js renders from inside the asar (worker, fonts, cmaps)', async () => {
+  const doc = await PDFDocument.create()
+  const font = await doc.embedFont(StandardFonts.Helvetica)
+  doc.addPage([144, 72]).drawText('Packaged', { x: 10, y: 30, size: 12, font })
+  const pdf = join(work, 'd.pdf')
+  await writeFile(pdf, await doc.save())
+  await runViaWheel(pdf, 'pdf.to-png')
+  const meta = await sharp(join(work, 'd-converted.png')).metadata()
+  expect([meta.width, meta.height]).toEqual([300, 150])
+})

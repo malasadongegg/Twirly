@@ -1,0 +1,49 @@
+appId: dev.twirly.app
+productName: Twirly
+copyright: Copyright © 2026 Mark
+directories:
+  output: release
+  buildResources: build
+
+# Only the built app and runtime dependencies (sharp, pdf-lib, zod) ship. React, pdf.js etc.
+# are bundled into out/renderer by Vite.
+files:
+  - out/**
+  - package.json
+  - '!**/*.map'
+
+# sharp loads native libvips binaries; they cannot be loaded from inside an asar archive.
+asarUnpack:
+  - node_modules/sharp/**
+  - node_modules/@img/**
+
+extraResources:
+  - from: native/windows-helper/bin/publish/TwirlyHelper.exe
+    to: helper/TwirlyHelper.exe
+  - from: assets
+    to: assets
+    filter:
+      - tray.png
+      - tray@2x.png
+      - icon.png
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: assets/icon.png
+  executableName: Twirly
+  # Code signing is not configured; see docs/release.md.
+  signAndEditExecutable: true
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Twirly
+  uninstallDisplayName: Twirly
+  deleteAppDataOnUninstall: false
+  include: build/installer.nsh
+  artifactName: Twirly-Setup-${version}.${ext}

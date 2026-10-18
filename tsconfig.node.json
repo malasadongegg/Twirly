@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": { "types": ["node"], "lib": ["ES2023"] },
+  "include": [
+    "electron.vite.config.ts",
+    "vitest.config.ts",
+    "playwright.config.ts",
+    "apps/desktop/src/main/**/*",
+    "apps/desktop/src/preload/**/*",
+    "packages/**/*",
+    "tests/unit/**/*.node.test.ts",
+    "tests/integration/**/*",
+    "tests/e2e/**/*",
+    "scripts/**/*.ts"
+  ]
+}

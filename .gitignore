@@ -1,0 +1,23 @@
+node_modules/
+out/
+dist/
+release/
+coverage/
+test-results/
+playwright-report/
+native/windows-helper/bin/
+native/windows-helper/obj/
+tests/.tmp/
+*.log
+tests/native/**/bin/
+tests/native/**/obj/
+apps/desktop/src/renderer/public/pdfjs/
+tests/fixtures/heic/
+brag-output/work/frames/
+brag-output/work/stills/
+brag-output/work/user-data/
+brag-output/work/files/
+brag-output/work/composition/dist/
+brag-output/work/audio.wav
+# Third-party reference clip (a social media repost): keep it out of the public repo.
+references/*.mp4

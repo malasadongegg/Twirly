@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "types": ["vite/client", "@testing-library/jest-dom"]
+  },
+  "include": [
+    "apps/desktop/src/renderer/**/*",
+    "apps/desktop/src/preload/api.d.ts",
+    "packages/core/**/*",
+    "packages/shared/**/*",
+    "tests/unit/**/*.test.tsx",
+    "tests/unit/**/*.dom.test.ts",
+    "tests/setup.ts"
+  ],
+  "exclude": ["packages/core/node/**/*"]
+}

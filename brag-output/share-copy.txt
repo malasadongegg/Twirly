@@ -1,0 +1,1 @@
+Drag a file, tap Shift, drop it on what you want. Twirly puts convert, crop, annotate, redact and PDF/video tools in a wheel right under your cursor on Windows, and your files never leave your PC.

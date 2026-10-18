@@ -1,0 +1,77 @@
+import { useEffect } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
+import { RadialWheel } from '../../components/RadialWheel/RadialWheel'
+import { JobToast } from '../../components/ProgressIndicator/JobToast'
+import { useJob } from '../../hooks/useJob'
+import { fades, useMotionPrefs } from '../../themes/motion'
+import { hubLabelFor, type WheelSession } from './useWheelSession'
+
+export const WHEEL_SIZE = 320
+
+/** Auto-dismiss delays after a job ends (failures stay until dismissed). */
+const DISMISS_AFTER = { done: 1400, cancelled: 900 } as const
+
+/**
+ * Renders the wheel, then morphs into the progress toast once an instant action starts.
+ * Positioned by the host: (x, y) is the wheel center in the host's coordinate space.
+ */
+export function WheelStage({ session, x, y, interactive }: { session: WheelSession; x: number; y: number; interactive: boolean }) {
+  const { state, hover, select, close, cancelJob } = session
+  const motionPrefs = useMotionPrefs()
+  const progress = useJob(state.job?.id ?? null)
+
+  useEffect(() => {
+    const status = progress?.status
+    if (status !== 'done' && status !== 'cancelled') return
+    const t = setTimeout(close, DISMISS_AFTER[status])
+    return () => clearTimeout(t)
+  }, [progress?.status, close])
+
+  const showWheel = state.phase === 'open' || state.phase === 'error'
+  const items = state.actions.map((a) => ({ id: a.id, label: a.label, title: a.title, icon: a.icon }))
+
+  return (
+    <div className="pointer-events-none absolute" style={{ left: x, top: y }}>
+      {/* mode=wait: the toast enters only after the wheel has left, never underneath it. */}
+      <AnimatePresence mode="wait">
+        {showWheel && (
+          <motion.div
+            key="wheel"
+            className="pointer-events-auto absolute"
+            style={{ left: -WHEEL_SIZE / 2, top: -WHEEL_SIZE / 2, width: WHEEL_SIZE, height: WHEEL_SIZE }}
+            initial={{ opacity: 0, scale: motionPrefs.wheelInitialScale, filter: motionPrefs.reduced ? 'none' : 'blur(4px)' }}
+            animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+            exit={{ opacity: 0, scale: motionPrefs.reduced ? 1 : 0.94, transition: fades.fast }}
+            transition={motionPrefs.wheelEnter}
+          >
+            <RadialWheel
+              items={state.phase === 'error' ? [] : items}
+              activeIndex={state.active}
+              hubLabel={hubLabelFor(state)}
+              hubTone={state.phase === 'error' ? 'danger' : state.emptyReason ? 'muted' : 'normal'}
+              size={WHEEL_SIZE}
+              interactive={interactive || !!state.clickToChoose}
+              onHover={hover}
+              onSelect={select}
+              onCancel={close}
+            />
+            {state.phase === 'error' && (
+              <button
+                type="button"
+                onClick={close}
+                className="absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full border border-line bg-elevated px-3 py-1 text-xs text-fg-2 hover:text-fg"
+              >
+                Dismiss
+              </button>
+            )}
+          </motion.div>
+        )}
+        {state.phase === 'running' && state.job && (
+          <motion.div key="toast" className="pointer-events-auto absolute" style={{ left: -144, top: -40 }}>
+            <JobToast title={state.job.title} progress={progress} onCancel={cancelJob} onDismiss={close} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
