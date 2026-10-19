@@ -1,5 +1,6 @@
 import sharp from 'sharp'
 import type { InferenceSession } from 'onnxruntime-node'
+import type { MaskStroke } from '@core/actions/image-extras'
 import { CancelledError, UserFacingError } from '../errors'
 
 /**
@@ -90,17 +91,44 @@ export async function backgroundMask(input: Buffer, signal?: AbortSignal): Promi
   return { mask, width, height }
 }
 
+/**
+ * Apply touch-up strokes to a 1-channel mask: "keep" paints it opaque, "erase" transparent, later
+ * strokes over earlier ones. Strokes are drawn as round-capped lines, antialiased at the edge.
+ */
+export async function applyStrokes(mask: Buffer, width: number, height: number, strokes: MaskStroke[]): Promise<Buffer> {
+  if (strokes.length === 0) return mask
+  const f = (n: number) => Math.round(n * 10) / 10
+  const body = strokes
+    .map((s) => {
+      const color = s.mode === 'keep' ? '#fff' : '#000'
+      if (s.points.length === 1) return `<circle cx="${f(s.points[0]![0])}" cy="${f(s.points[0]![1])}" r="${f(s.size / 2)}" fill="${color}"/>`
+      const pts = s.points.map(([x, y]) => `${f(x)},${f(y)}`).join(' ')
+      return `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="${f(s.size)}" stroke-linecap="round" stroke-linejoin="round"/>`
+    })
+    .join('')
+  const svg = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">${body}</svg>`)
+  const paint = await sharp(svg).ensureAlpha().raw().toBuffer()
+  const out = Buffer.from(mask)
+  for (let i = 0; i < width * height; i++) {
+    const a = paint[i * 4 + 3]!
+    if (a > 0) out[i] = Math.round(out[i]! + ((paint[i * 4]! - out[i]!) * a) / 255)
+  }
+  return out
+}
+
 /** The subject on a transparent background (RGBA raw), keeping any existing transparency. */
-export async function cutoutRaw(input: Buffer, signal?: AbortSignal): Promise<{ data: Buffer; width: number; height: number }> {
-  const { mask, width, height } = await backgroundMask(input, signal)
+export async function cutoutRaw(input: Buffer, signal?: AbortSignal, strokes: MaskStroke[] = []): Promise<{ data: Buffer; width: number; height: number }> {
+  const auto = await backgroundMask(input, signal)
+  const { width, height } = auto
+  const mask = await applyStrokes(auto.mask, width, height, strokes)
   const data = await sharp(input, { animated: false }).autoOrient().ensureAlpha().raw().toBuffer()
   for (let i = 0; i < width * height; i++) data[i * 4 + 3] = Math.round((data[i * 4 + 3]! * mask[i]!) / 255)
   return { data, width, height }
 }
 
 /** Transparent PNG of the subject. Also reports how much of the image was kept (0..1). */
-export async function removeBackground(input: Buffer, signal?: AbortSignal): Promise<{ png: Buffer; kept: number }> {
-  const { data, width, height } = await cutoutRaw(input, signal)
+export async function removeBackground(input: Buffer, signal?: AbortSignal, strokes: MaskStroke[] = []): Promise<{ png: Buffer; kept: number }> {
+  const { data, width, height } = await cutoutRaw(input, signal, strokes)
   let opaque = 0
   for (let i = 3; i < data.length; i += 4) if (data[i]! > 127) opaque++
   const png = await sharp(data, { raw: { width, height, channels: 4 } }).png({ compressionLevel: 9 }).toBuffer()

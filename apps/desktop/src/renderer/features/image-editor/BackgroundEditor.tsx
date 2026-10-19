@@ -1,27 +1,13 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FileInfo } from '@shared/types'
 import { BACKGROUND_PRESETS, backgroundCanvas, type BackgroundParams, type BgRatio } from '@core/actions/image-extras'
 import { WindowFrame } from '../../components/FloatingWindow/WindowFrame'
 import { Button, FieldRow, Segmented, Slider } from '../../components/ui/controls'
 import { EditorFooter } from './EditorFooter'
+import { MaskedImage, TouchUpTools, useCutoutMask, useStrokes, type BrushTool } from './MaskTouchUp'
 import { useBoxSize, useEditorJob, useImagePreview } from './useImageJob'
 
 const PREVIEW_MAX = 1400
-
-/** Cut-out preview of the subject, computed in main the first time "Remove" is chosen. */
-function useCutout(path: string, enabled: boolean) {
-  const [result, setResult] = useState<{ url?: string; error?: string }>({})
-  const requested = useRef(false)
-  useEffect(() => {
-    if (!enabled || requested.current) return
-    requested.current = true
-    window.twirly
-      .removeBgPreview(path, PREVIEW_MAX)
-      .then((url) => setResult({ url }))
-      .catch((e: Error) => setResult({ error: e.message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '') }))
-  }, [path, enabled])
-  return { ...result, busy: enabled && !result.url && !result.error }
-}
 
 /** Data URL preview for an optional path (the picture background). */
 function useOptionalPreview(path: string | undefined) {
@@ -60,9 +46,13 @@ export function BackgroundEditor({ actionId, file }: { actionId: string; file: F
     fill: 'gradient',
     blur: 0,
     removeBg: false,
+    strokes: [],
   })
   const [initialized, setInitialized] = useState(false)
-  const cutout = useCutout(file.path, p.removeBg)
+  const cutout = useCutoutMask(file.path, PREVIEW_MAX, p.removeBg)
+  const { strokes, add, undo, reset } = useStrokes()
+  const [tool, setTool] = useState<BrushTool>('off')
+  const [brush, setBrush] = useState<number | null>(null)
   const pictureUrl = useOptionalPreview(p.fill === 'image' ? p.image : undefined)
 
   // Start with proportions that look good at any resolution.
@@ -77,6 +67,7 @@ export function BackgroundEditor({ actionId, file }: { actionId: string; file: F
   const maxDim = preview ? Math.max(preview.width, preview.height) : 1000
   const set = (patch: Partial<BackgroundParams>) => setP((s) => ({ ...s, ...patch }))
   const cut = p.removeBg && cutout.url
+  const brushSize = brush ?? Math.max(2, Math.round(maxDim * 0.04))
   const shadowCss = p.shadow ? `0 ${(p.shadow / 3) * scale}px ${p.shadow * scale}px rgb(0 0 0 / 0.45)` : 'none'
   const needsPicture = p.fill === 'image' && !p.image
 
@@ -95,7 +86,7 @@ export function BackgroundEditor({ actionId, file }: { actionId: string; file: F
           idle={needsPicture ? 'Choose a picture for the background' : `Output ${full.width} × ${full.height} px · PNG`}
           primary="Save with background"
           primaryDisabled={!preview || needsPicture || (p.removeBg && !!cutout.error)}
-          onPrimary={() => void job.run({ ...p })}
+          onPrimary={() => void job.run({ ...p, strokes: p.removeBg ? strokes : [] })}
         />
       }
     >
@@ -119,20 +110,35 @@ export function BackgroundEditor({ actionId, file }: { actionId: string; file: F
                   : { background: `linear-gradient(${p.angle + 90}deg, ${p.from}, ${p.to})` }
               }
             />
-            <img
-              src={cut ? cutout.url : preview.dataUrl}
-              alt=""
-              data-testid="subject"
-              className="relative"
-              style={{
-                width: preview.width * scale,
-                height: preview.height * scale,
-                opacity: p.removeBg && !cut ? 0.45 : 1,
-                borderRadius: cut ? 0 : Math.min(p.corners, Math.min(preview.width, preview.height) / 2) * scale,
-                boxShadow: cut ? 'none' : shadowCss,
-                filter: cut && p.shadow ? `drop-shadow(${shadowCss})` : undefined,
-              }}
-            />
+            {cut ? (
+              <div className="relative">
+                <MaskedImage
+                  imageUrl={preview.dataUrl}
+                  maskUrl={cutout.url!}
+                  width={preview.width}
+                  height={preview.height}
+                  scale={scale}
+                  strokes={strokes}
+                  tool={tool}
+                  brush={brushSize}
+                  onStroke={add}
+                  style={p.shadow ? { filter: `drop-shadow(${shadowCss})` } : undefined}
+                />
+              </div>
+            ) : (
+              <img
+                src={preview.dataUrl}
+                alt=""
+                className="relative"
+                style={{
+                  width: preview.width * scale,
+                  height: preview.height * scale,
+                  opacity: p.removeBg ? 0.45 : 1,
+                  borderRadius: Math.min(p.corners, Math.min(preview.width, preview.height) / 2) * scale,
+                  boxShadow: shadowCss,
+                }}
+              />
+            )}
             {p.removeBg && cutout.busy && (
               <div className="absolute inset-x-0 bottom-3 text-center">
                 <span className="rounded-md bg-bg/85 px-2.5 py-1 text-xs text-fg">Finding the subject…</span>
@@ -154,6 +160,18 @@ export function BackgroundEditor({ actionId, file }: { actionId: string; file: F
           />
         </FieldRow>
         {p.removeBg && cutout.error && <p className="text-xs text-danger">{cutout.error}</p>}
+        {p.removeBg && cutout.url && (
+          <TouchUpTools
+            tool={tool}
+            onTool={setTool}
+            brush={brushSize}
+            onBrush={setBrush}
+            maxBrush={Math.max(4, Math.round(maxDim * 0.25))}
+            canUndo={strokes.length > 0}
+            onUndo={undo}
+            onReset={reset}
+          />
+        )}
         <FieldRow label="New background">
           <Segmented
             label="New background"

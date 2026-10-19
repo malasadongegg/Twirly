@@ -115,8 +115,10 @@ export const ACTIONS: ActionDefinition[] = [
     canRead: canDecodeImage,
     unavailableReason: (caps) => (caps.removeBg ? null : 'The background-removal model is missing'),
     minFiles: 1,
-    maxFiles: 50,
-    mode: 'instant',
+    maxFiles: 1,
+    // Opens with the automatic result; brushes fix what the model got wrong before saving.
+    mode: 'editor',
+    editor: 'removebg',
     suffix: 'no-bg',
   },
   {

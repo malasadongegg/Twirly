@@ -16,7 +16,7 @@ export async function renderWithBackground(input: Buffer, p: BackgroundParams, o
   let w: number
   let h: number
   if (p.removeBg) {
-    const cut = await cutoutRaw(input, opts.signal)
+    const cut = await cutoutRaw(input, opts.signal, p.strokes)
     ;({ width: w, height: h } = cut)
     image = await sharp(cut.data, { raw: { width: w, height: h, channels: 4 } }).png().toBuffer()
   } else {

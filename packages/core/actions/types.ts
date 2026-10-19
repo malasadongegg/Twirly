@@ -36,7 +36,7 @@ export type ActionIcon =
   | 'wand-sparkles'
 
 export type ActionMode = 'instant' | 'editor'
-export type EditorKind = 'image' | 'pdf' | 'media' | 'background' | 'redact' | 'metadata' | 'annotate'
+export type EditorKind = 'image' | 'pdf' | 'media' | 'background' | 'redact' | 'metadata' | 'annotate' | 'removebg'
 
 export interface ActionDefinition {
   id: string

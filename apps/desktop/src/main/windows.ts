@@ -92,6 +92,22 @@ export function showWheel(win: BrowserWindow, payload: WheelShowPayload, opts: {
   } else {
     win.showInactive()
   }
+  raiseToTop(win)
+}
+
+/**
+ * Put the wheel above everything, now and again shortly after. A drag in progress belongs to
+ * another app's drag loop, and the wheel was seen landing behind Explorer despite its topmost
+ * flag; re-asserting topmost and the z-order costs nothing.
+ */
+function raiseToTop(win: BrowserWindow): void {
+  const raise = () => {
+    if (win.isDestroyed() || !win.isVisible()) return
+    win.setAlwaysOnTop(true, 'pop-up-menu')
+    win.moveTop()
+  }
+  raise()
+  for (const ms of [60, 250]) setTimeout(raise, ms)
 }
 
 const editorContexts = new Map<number, EditorContext>()

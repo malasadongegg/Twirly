@@ -6,6 +6,7 @@ import { ImageEditor } from '../image-editor/ImageEditor'
 import { PdfEditor } from '../pdf-tools/PdfEditor'
 import { MediaEditor } from '../media-tools/MediaEditor'
 import { BackgroundEditor } from '../image-editor/BackgroundEditor'
+import { RemoveBgEditor } from '../image-editor/RemoveBgEditor'
 import { RedactEditor } from '../image-editor/RedactEditor'
 import { MetadataView } from '../image-editor/MetadataView'
 import { AnnotateEditor } from '../image-editor/AnnotateEditor'
@@ -36,6 +37,7 @@ export function EditorApp() {
   const action = ACTIONS_BY_ID.get(ctx.context.actionId)
   if (action?.editor === 'image') return <ImageEditor actionId={action.id} file={ctx.files[0]!} />
   if (action?.editor === 'background') return <BackgroundEditor actionId={action.id} file={ctx.files[0]!} />
+  if (action?.editor === 'removebg') return <RemoveBgEditor actionId={action.id} file={ctx.files[0]!} />
   if (action?.editor === 'redact') return <RedactEditor actionId={action.id} file={ctx.files[0]!} />
   if (action?.editor === 'annotate') return <AnnotateEditor actionId={action.id} file={ctx.files[0]!} />
   if (action?.editor === 'metadata') return <MetadataView file={ctx.files[0]!} />

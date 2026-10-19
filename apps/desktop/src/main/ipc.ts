@@ -10,7 +10,7 @@ import { readExif } from '@core/image/exif'
 import { ACTIONS_BY_ID } from '@core/actions/definitions'
 import { inspectPaths } from '@processing/fs/inspect'
 import { loadImage, previewDataUrl, readImageMeta } from '@processing/images/process'
-import { removeBackground } from '@processing/images/remove-bg'
+import { backgroundMask } from '@processing/images/remove-bg'
 import { toUserFacing } from '@processing/errors'
 import { getCapabilities } from './capabilities'
 import { ensureLibreOffice } from './libreoffice'
@@ -86,9 +86,9 @@ export function registerIpc({ runner, onWheelDismiss, onMainClose }: IpcDeps): v
     return { dataUrl, ...meta }
   })
 
-  // Cut-out previews are cached per file: the editor asks again whenever the toggle flips.
+  // Masks are cached per file: editors ask again whenever "Remove" is toggled.
   const cutouts = new Map<string, Promise<string>>()
-  handle(IPC.removeBgPreview, imagePreviewSchema, ({ path, maxSize }) => {
+  handle(IPC.removeBgMask, imagePreviewSchema, ({ path, maxSize }) => {
     absolutePaths([path])
     const key = `${path}|${maxSize}`
     let hit = cutouts.get(key)
@@ -99,7 +99,11 @@ export function registerIpc({ runner, onWheelDismiss, onMainClose }: IpcDeps): v
           .resize(maxSize, maxSize, { fit: 'inside', withoutEnlargement: true })
           .png()
           .toBuffer()
-        const { png } = await removeBackground(small)
+        const { mask, width, height } = await backgroundMask(small)
+        // Black with the mask as alpha, so the editor can composite it with destination-in.
+        const rgba = Buffer.alloc(width * height * 4)
+        for (let i = 0; i < width * height; i++) rgba[i * 4 + 3] = mask[i]!
+        const png = await sharp(rgba, { raw: { width, height, channels: 4 } }).png().toBuffer()
         return `data:image/png;base64,${png.toString('base64')}`
       })()
       hit.catch(() => cutouts.delete(key))

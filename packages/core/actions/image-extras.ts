@@ -20,6 +20,20 @@ export const BACKGROUND_PRESETS = [
 export const BG_RATIOS = { auto: null, '1:1': 1, '16:9': 16 / 9, '4:5': 4 / 5 } as const
 export type BgRatio = keyof typeof BG_RATIOS
 
+/** A touch-up brush stroke on the background-removal mask, in displayed (oriented) image pixels. */
+export const maskStrokeSchema = z.object({
+  /** keep = paint the subject back in; erase = remove more. */
+  mode: z.enum(['keep', 'erase']),
+  /** Brush diameter in image pixels. */
+  size: z.number().min(1).max(4000),
+  points: z.array(z.tuple([z.number(), z.number()])).min(1).max(20_000),
+})
+export type MaskStroke = z.output<typeof maskStrokeSchema>
+export const strokesSchema = z.array(maskStrokeSchema).max(500).default([])
+
+/** "Remove background": optional touch-up strokes over the automatic mask. */
+export const removeBgSchema = z.object({ strokes: strokesSchema })
+
 export const backgroundSchema = z.object({
   from: hex.default('#3b82f6'),
   to: hex.default('#a855f7'),
@@ -39,6 +53,8 @@ export const backgroundSchema = z.object({
   blur: z.number().min(0).max(200).default(0),
   /** Cut the subject out first (IS-Net), so the new background shows around it. */
   removeBg: z.boolean().default(false),
+  /** Touch-up strokes for the cut-out (only with removeBg). */
+  strokes: strokesSchema,
 })
 export type BackgroundParams = z.output<typeof backgroundSchema>
 

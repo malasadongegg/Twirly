@@ -339,7 +339,8 @@ test('add background: remove the original background and put the subject on a pi
   await sharp({ create: { width: 60, height: 40, channels: 3, background: '#7c3aed' } }).png().toFile(picture)
   const editor = await openImageEditor(src, 'image.background')
   await editor.getByRole('radio', { name: 'Remove' }).click()
-  await expect(editor.getByTestId('subject')).toHaveAttribute('src', /^data:image\/png/, { timeout: 30_000 })
+  await expect(editor.getByTestId('subject')).toHaveAttribute('data-ready', 'true', { timeout: 30_000 })
+  await expect(editor.getByRole('radio', { name: 'Erase' })).toBeVisible()
   await stubFileDialog([picture])
   await editor.getByRole('radio', { name: 'Picture' }).click()
   await expect(editor.getByText('purple.png')).toBeVisible()
@@ -368,17 +369,29 @@ test('custom gradient colors and angle', async () => {
   await editor.close()
 })
 
-test('remove background from the wheel saves a transparent PNG', async () => {
+test('remove background editor: automatic cut-out, then erase with the brush, saves a transparent PNG', async () => {
   const src = join(work, 'ball.png')
-  await stubFileDialog([src])
-  await home.getByRole('button', { name: /Browse files/ }).click()
-  await home.getByTestId('wheel-segment-image.remove-bg').click()
-  await expect(home.getByTestId('job-toast')).toHaveAttribute('data-status', 'done', { timeout: 30_000 })
+  const editor = await openImageEditor(src, 'image.remove-bg')
+  const subject = editor.getByTestId('subject')
+  await expect(subject).toHaveAttribute('data-ready', 'true', { timeout: 30_000 })
+  // Erase a band through the middle of the ball.
+  await editor.getByRole('radio', { name: 'Erase' }).click()
+  const box = (await subject.boundingBox())!
+  const sx = box.width / 480
+  await editor.mouse.move(box.x + 200 * sx, box.y + 180 * sx)
+  await editor.mouse.down()
+  await editor.mouse.move(box.x + 280 * sx, box.y + 180 * sx, { steps: 8 })
+  await editor.mouse.up()
+  await expect(subject).toHaveAttribute('data-strokes', '1')
+  await editor.screenshot({ path: join(shots, 'remove-bg-editor.png') })
+  await editor.getByTestId('editor-export').click()
+  await expect(editor.getByTestId('editor-status')).toHaveText(/Saved ball-no-bg\.png/, { timeout: 30_000 })
   const out = join(work, 'ball-no-bg.png')
   expect((await sharp(out).metadata()).hasAlpha).toBe(true)
-  expect((await pixel(out, 5, 5))[3]).toBeLessThan(20)
-  expect((await pixel(out, 240, 180))[3]).toBeGreaterThan(220)
-  await expect(home.getByTestId('job-toast')).toBeHidden({ timeout: 5000 })
+  expect((await pixel(out, 5, 5))[3]).toBeLessThan(20) // backdrop removed
+  expect((await pixel(out, 240, 180))[3]).toBe(0) // erased by the brush
+  expect((await pixel(out, 240, 260))[3]).toBeGreaterThan(220) // rest of the ball kept
+  await editor.close()
 })
 
 test('redact editor: drawn box is burned in and metadata removed', async () => {

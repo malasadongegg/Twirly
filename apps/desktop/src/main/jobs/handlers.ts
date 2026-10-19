@@ -27,7 +27,7 @@ import { readText, textToDocx, textToPdf } from '@processing/text/text-docs'
 import { sha256File } from '@processing/fs/checksum'
 import { inspectPaths } from '@processing/fs/inspect'
 import { getCapabilities } from '../capabilities'
-import { backgroundSchema, redactSchema } from '@core/actions/image-extras'
+import { backgroundSchema, redactSchema, removeBgSchema } from '@core/actions/image-extras'
 import { renderAnnotated, renderRedacted, renderWithBackground } from '@processing/images/extras'
 import { annotateSchema } from '@core/image/annotate'
 import { loadImage } from '@processing/images/process'
@@ -161,7 +161,8 @@ const backgroundHandler: Handler = eachFile(async (ctx, file) => {
 })
 
 const removeBgHandler: Handler = eachFile(async (ctx, file) => {
-  const { png, kept } = await removeBackground(await loadImage(file.path, ctx.signal), ctx.signal)
+  const { strokes } = removeBgSchema.parse(ctx.params)
+  const { png, kept } = await removeBackground(await loadImage(file.path, ctx.signal), ctx.signal, strokes)
   if (kept < 0.002) throw new UserFacingError(`No clear subject was found in ${file.name}.`)
   await ctx.out.write(file.path, ctx.action.suffix, 'png', png, ctx.signal)
 })
