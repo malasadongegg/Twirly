@@ -28,7 +28,7 @@ program. Everything runs locally: your files never leave your PC.
 
 Download the latest installer from [Releases](../../releases) (marked **pre-release**). Windows 10/11, x64.
 
-Everything is included: video, audio and HEIC work out of the box (FFmpeg ships inside the installer). Only **Word/Excel/PowerPoint → PDF** needs Microsoft Office or [LibreOffice](https://www.libreoffice.org/) on the PC; without one, that action is simply hidden.
+Everything is included: video, audio and HEIC work out of the box (FFmpeg ships inside the installer). Only **Word/Excel/PowerPoint → PDF** needs Microsoft Office or [LibreOffice](https://www.libreoffice.org/). If neither is installed, Twirly offers to install LibreOffice (free) for you the first time you use it, or from Settings → Diagnostics.
 
 ## Build from source
 

@@ -12,6 +12,7 @@ import { inspectPaths } from '@processing/fs/inspect'
 import { loadImage, previewDataUrl, readImageMeta } from '@processing/images/process'
 import { toUserFacing } from '@processing/errors'
 import { getCapabilities } from './capabilities'
+import { ensureLibreOffice } from './libreoffice'
 import { JobRunner } from './jobs/runner'
 import { createEditorWindow, getEditorContext } from './windows'
 import { getSettings, updateSettings } from './settings'
@@ -119,6 +120,7 @@ export function registerIpc({ runner, onWheelDismiss, onMainClose }: IpcDeps): v
     if (action === 'uninstall') await uninstallContextMenu()
     return { installed: await isContextMenuInstalled() }
   })
+  handle(IPC.installLibreOffice, z.undefined(), () => ensureLibreOffice({ ask: false }))
 
   handle(IPC.pdfBytes, z.string().min(1), async (path) => {
     absolutePaths([path])

@@ -27,7 +27,7 @@ export function JobToast({ title, progress, onCancel, onDismiss }: JobToastProps
         ? (progress?.error?.message ?? 'Failed')
         : status === 'cancelled'
           ? 'Cancelled'
-          : `${completed} of ${total} saved`
+          : (progress?.message ?? `${completed} of ${total} saved`)
 
   return (
     <motion.div

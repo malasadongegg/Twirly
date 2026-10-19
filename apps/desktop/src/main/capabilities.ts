@@ -62,13 +62,15 @@ export function getCapabilities(opts: { ffmpegPath?: string; refresh?: boolean }
     const decoders = ffmpeg.available ? ((await probe(ffmpegCmd, ['-hide_banner', '-decoders'])) ?? '') : ''
     const heic = /^\s*V\S*\s+hevc\s/m.test(decoders)
     configureHeicDecoder(heic ? ffmpegCmd : null)
+    // E2E: pretend this PC has neither Office nor LibreOffice (exercises the install offer).
+    const noOffice = process.env.TWIRLY_TEST_NO_OFFICE === '1'
     return {
       imageInput: [...detectImageInputs(), ...(heic ? ['heic'] : [])],
       imageOutput: detectImageOutputs(),
       ffmpeg,
       ffprobe: { available: ffprobeOut !== null, path: ffprobeOut !== null ? ffprobeCmd : undefined },
-      libreoffice: { available: soffice !== null || existsSync(LIBREOFFICE_DEFAULT), path: soffice !== null ? 'soffice' : existsSync(LIBREOFFICE_DEFAULT) ? LIBREOFFICE_DEFAULT : undefined },
-      office: await detectOffice(),
+      libreoffice: noOffice ? { available: false } : { available: soffice !== null || existsSync(LIBREOFFICE_DEFAULT), path: soffice !== null ? 'soffice' : existsSync(LIBREOFFICE_DEFAULT) ? LIBREOFFICE_DEFAULT : undefined },
+      office: noOffice ? { word: false, excel: false, powerpoint: false } : await detectOffice(),
     }
   })()
   return cached

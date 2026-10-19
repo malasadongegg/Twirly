@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Capabilities, FileInfo } from '@shared/types'
 import { describeSelection, MAX_WHEEL_SEGMENTS, resolveActions } from '@core/actions/resolve'
 import { ACTIONS } from '@core/actions/definitions'
+import { officeEngineFor } from '@core/actions/more-actions'
 import { planImageJob } from '@core/actions/image-plan'
 
 const caps: Capabilities = {
@@ -128,11 +129,16 @@ describe('new kinds: folders, archives, documents, text, anything', () => {
   it('gives unknown files generic actions instead of nothing', () => {
     expect(ids([file('exe', 'unknown')])).toEqual(['file.zip', 'file.copy-path', 'file.checksum'])
   })
-  it('only offers Office → PDF when Office or LibreOffice can do it', () => {
-    expect(ids([file('docx', 'document')])).not.toContain('document.to-pdf')
-    expect(ids([file('docx', 'document')], { ...caps, office: { word: true, excel: false, powerpoint: false } })[0]).toBe('document.to-pdf')
-    expect(ids([file('xlsx', 'document')], { ...caps, office: { word: true, excel: false, powerpoint: false } })).not.toContain('document.to-pdf')
-    expect(ids([file('pptx', 'document')], { ...caps, libreoffice: { available: true } })).toContain('document.to-pdf')
+  it('always offers Office → PDF (it offers to install LibreOffice when no engine exists)', () => {
+    expect(ids([file('docx', 'document')])[0]).toBe('document.to-pdf')
+    expect(ids([file('xlsx', 'document')])).toContain('document.to-pdf')
+    expect(ids([file('pdf', 'pdf')])).not.toContain('document.to-pdf')
+  })
+  it('picks the engine: matching Office app first, then LibreOffice', () => {
+    const word = { ...caps, office: { word: true, excel: false, powerpoint: false } }
+    expect(officeEngineFor('docx', word)).toBe('word')
+    expect(officeEngineFor('xlsx', word)).toBeNull()
+    expect(officeEngineFor('xlsx', { ...word, libreoffice: { available: true } })).toBe('libreoffice')
   })
   it('text files get PDF/DOCX, and combine needs two', () => {
     expect(ids([file('txt', 'text')]).slice(0, 2)).toEqual(['text.to-pdf', 'text.to-docx'])

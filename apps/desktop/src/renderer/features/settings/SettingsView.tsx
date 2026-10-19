@@ -215,6 +215,17 @@ export function SettingsView() {
   const [diag, setDiag] = useState<Diagnostics | null>(null)
   const [menuBusy, setMenuBusy] = useState(false)
   const [menuError, setMenuError] = useState<string | null>(null)
+  const [loState, setLoState] = useState<{ busy: boolean; error?: string }>({ busy: false })
+  const installLibreOffice = async () => {
+    setLoState({ busy: true })
+    try {
+      await window.twirly.installLibreOffice()
+      setLoState({ busy: false })
+      refresh(true)
+    } catch (e) {
+      setLoState({ busy: false, error: (e as Error).message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '') })
+    }
+  }
 
   const refresh = (force = false) => void window.twirly.diagnostics(force).then(setDiag)
   useEffect(() => {
@@ -394,6 +405,14 @@ export function SettingsView() {
             <dd>
               {[caps.office.word && 'Word', caps.office.excel && 'Excel', caps.office.powerpoint && 'PowerPoint'].filter(Boolean).join(', ') || 'Microsoft Office not found'}
               {caps.libreoffice.available ? ' · LibreOffice' : ''}
+              {!caps.libreoffice.available && !(caps.office.word && caps.office.excel && caps.office.powerpoint) && (
+                <div className="mt-1 flex flex-col items-start gap-1">
+                  <Button className="h-7 px-2 text-xs" disabled={loState.busy} onClick={() => void installLibreOffice()} data-testid="install-libreoffice">
+                    {loState.busy ? 'Installing LibreOffice… (a few minutes)' : 'Install LibreOffice (free)'}
+                  </Button>
+                  {loState.error && <span className="text-danger">{loState.error}</span>}
+                </div>
+              )}
             </dd>
             <dt className="text-fg-3">Version</dt>
             <dd>

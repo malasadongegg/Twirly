@@ -41,7 +41,7 @@ export const MORE_ACTIONS: ActionDefinition[] = [
     icon: 'file-output',
     kinds: ['document'],
     formats: [...OFFICE_WORD, ...OFFICE_EXCEL, ...OFFICE_POWERPOINT],
-    canRead: (file, caps) => officeEngineFor(file.format, caps) !== null,
+    // Always shown: without Office or LibreOffice the handler offers to install LibreOffice.
     minFiles: 1,
     maxFiles: 50,
     mode: 'instant',

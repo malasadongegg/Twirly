@@ -72,6 +72,8 @@ export interface TwirlyApi {
     onChange(cb: (s: Settings) => void): () => void
   }
   contextMenu(action: 'status' | 'install' | 'uninstall'): Promise<{ installed: boolean }>
+  /** Install LibreOffice via winget (for Office → PDF when Microsoft Office is missing). */
+  installLibreOffice(): Promise<void>
   /** Raw bytes of a PDF the user opened (signature-checked in main). */
   pdfBytes(path: string): Promise<Uint8Array>
   /** Probe a media file and get a playable URL for it (editor windows only). */

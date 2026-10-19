@@ -24,6 +24,7 @@ export const IPC = {
   settingsSet: 'settings:set',
   settingsChanged: 'settings:changed',
   contextMenu: 'integration:context-menu',
+  installLibreOffice: 'integration:install-libreoffice',
   pdfWorkerRequest: 'pdfworker:request',
   pdfWorkerResponse: 'pdfworker:response',
   pdfBytes: 'pdf:bytes',

@@ -30,6 +30,7 @@ const api: TwirlyApi = {
     onChange: (cb) => subscribe(IPC.settingsChanged, cb),
   },
   contextMenu: (action) => ipcRenderer.invoke(IPC.contextMenu, action),
+  installLibreOffice: () => ipcRenderer.invoke(IPC.installLibreOffice),
   pdfBytes: (path) => ipcRenderer.invoke(IPC.pdfBytes, path),
   mediaOpen: (path) => ipcRenderer.invoke(IPC.mediaOpen, path),
   imageMetadata: (path) => ipcRenderer.invoke(IPC.imageMetadata, path),

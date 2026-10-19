@@ -109,7 +109,8 @@ export class JobRunner {
           this.emit(job, { completed: Math.min(completed, job.progress.total), fraction, outputs: [...out.outputs] })
         },
         setMessage: (message) => {
-          job.progress.message = message
+          job.progress.message = message || undefined
+          this.emit(job, {})
         },
         perFile: async (_index, fn) => {
           const mark = out.outputs.length

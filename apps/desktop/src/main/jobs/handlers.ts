@@ -19,6 +19,7 @@ import { readdir } from 'node:fs/promises'
 import { join } from 'node:path'
 import { splitName } from '@core/naming/output-name'
 import { officeEngineFor } from '@core/actions/more-actions'
+import { ensureLibreOffice } from '../libreoffice'
 import { extractMatching, extractZip, zipPaths } from '@processing/archive/zip'
 import { extractPdfImages } from '@processing/pdf/extract-images'
 import { officeToPdf } from '@processing/office/convert'
@@ -246,7 +247,13 @@ const folderImagesToPdf: Handler = eachFile(async (ctx, folder) => {
 // ----- documents -----
 
 const documentToPdf: Handler = eachFile(async (ctx, file) => {
-  const caps = await getCapabilities()
+  let caps = await getCapabilities()
+  if (!officeEngineFor(file.format, caps)) {
+    // No Office app for this file and no LibreOffice: offer to install LibreOffice, then carry on.
+    await ensureLibreOffice({ signal: ctx.signal, onStatus: ctx.setMessage })
+    ctx.setMessage('')
+    caps = await getCapabilities()
+  }
   const engine = officeEngineFor(file.format, caps)
   if (!engine) throw new UserFacingError('Converting this document needs Microsoft Office or LibreOffice.')
   await ctx.out.produce(file.path, '', 'pdf', (tmp) => officeToPdf(engine, file.path, tmp, { libreOfficePath: caps.libreoffice.path, signal: ctx.signal }))

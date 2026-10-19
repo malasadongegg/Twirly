@@ -33,7 +33,7 @@ Severity: **H** blocks a public release · **M** should fix · **L** cosmetic or
 | P8 | M | PDF → TXT has no OCR: scanned PDFs report "no text layer". |
 | P9 | M | Not implemented: office documents → PDF (LibreOffice), PDF redaction (deliberately disabled). PDF → DOCX carries text, paragraphs, headings and page breaks, but not fonts, bold/italic, images or tables. |
 | P10 | L | GIF export of long videos can be large; there is no length warning yet. |
-| P11 | L | FFmpeg is bundled (adds ~55 MB to the installer). Office → PDF still needs Microsoft Office or LibreOffice installed; the action is hidden without one. |
+| P11 | L | FFmpeg is bundled (adds ~55 MB to the installer). Office → PDF needs Microsoft Office or LibreOffice; without either, Twirly offers a one-click LibreOffice install via winget (opens the download page if winget is missing). The real winget install has not been run in testing (only the offer/decline path is covered). |
 
 ## Security hardening backlog
 
