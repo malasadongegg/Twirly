@@ -135,6 +135,11 @@ describe('new kinds: folders, archives, documents, text, anything', () => {
     expect(ids([file('xlsx', 'document')])).toContain('document.to-pdf')
     expect(ids([file('pdf', 'pdf')])).not.toContain('document.to-pdf')
   })
+  it('Remove background is one instant action for one or many images; touch-up is not on the default wheel', () => {
+    expect(ids([file('png', 'image')])).toContain('image.remove-bg')
+    expect(ids([file('png', 'image'), file('jpeg', 'image'), file('webp', 'image')])).toContain('image.remove-bg')
+    expect(ids([file('png', 'image')])).not.toContain('image.remove-bg-touchup')
+  })
   it('picks the engine: matching Office app first, then LibreOffice', () => {
     const word = { ...caps, office: { word: true, excel: false, powerpoint: false } }
     expect(officeEngineFor('docx', word)).toBe('word')

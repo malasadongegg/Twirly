@@ -71,7 +71,7 @@ export function registerIpc({ runner, onWheelDismiss, onMainClose }: IpcDeps): v
   handle(IPC.openEditor, openEditorSchema, (req) => {
     const action = ACTIONS_BY_ID.get(req.actionId)
     if (!action || action.mode !== 'editor') throw new Error(`Not an editor action: ${req.actionId}`)
-    createEditorWindow({ actionId: req.actionId, paths: absolutePaths(req.paths) })
+    createEditorWindow({ actionId: req.actionId, paths: absolutePaths(req.paths), replace: req.replace ? absolutePaths([req.replace])[0] : undefined })
   })
   handle(IPC.editorContext, z.undefined(), (_p, e) => {
     const ctx = getEditorContext(e.sender.id)

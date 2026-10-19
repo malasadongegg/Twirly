@@ -37,7 +37,7 @@ export function EditorApp() {
   const action = ACTIONS_BY_ID.get(ctx.context.actionId)
   if (action?.editor === 'image') return <ImageEditor actionId={action.id} file={ctx.files[0]!} />
   if (action?.editor === 'background') return <BackgroundEditor actionId={action.id} file={ctx.files[0]!} />
-  if (action?.editor === 'removebg') return <RemoveBgEditor actionId={action.id} file={ctx.files[0]!} />
+  if (action?.editor === 'removebg') return <RemoveBgEditor actionId={action.id} file={ctx.files[0]!} replace={ctx.context.replace} />
   if (action?.editor === 'redact') return <RedactEditor actionId={action.id} file={ctx.files[0]!} />
   if (action?.editor === 'annotate') return <AnnotateEditor actionId={action.id} file={ctx.files[0]!} />
   if (action?.editor === 'metadata') return <MetadataView file={ctx.files[0]!} />

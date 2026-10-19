@@ -98,12 +98,7 @@ test('packaged: background removal runs (ONNX Runtime from asar.unpacked, bundle
     <circle cx="160" cy="120" r="70" fill="url(#b)"/></svg>`
   const src = join(work, 'ball.png')
   await sharp(Buffer.from(svg)).png().toFile(src)
-  // The wheel opens the touch-up editor; run the same job directly, as its Save button does.
-  const { jobId } = await home.evaluate((p) => window.twirly.runJob({ actionId: 'image.remove-bg', paths: [p], params: { strokes: [] } }), src)
-  await expect
-    .poll(async () => existsSync(join(work, 'ball-no-bg.png')), { timeout: 30_000 })
-    .toBe(true)
-  expect(jobId).toBeTruthy()
+  await runViaWheel(src, 'image.remove-bg')
   const { data, info } = await sharp(join(work, 'ball-no-bg.png')).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
   expect(data[3]).toBeLessThan(20) // corner: transparent
   expect(data[(120 * info.width + 160) * 4 + 3]).toBeGreaterThan(220) // centre: the ball

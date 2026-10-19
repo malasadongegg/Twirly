@@ -369,13 +369,21 @@ test('custom gradient colors and angle', async () => {
   await editor.close()
 })
 
-test('remove background editor: automatic cut-out, then erase with the brush, saves a transparent PNG', async () => {
+test('remove background is instant; Touch up on the toast refines and replaces the same cut-out', async () => {
   const src = join(work, 'ball.png')
-  const editor = await openImageEditor(src, 'image.remove-bg')
+  await stubFileDialog([src])
+  await home.getByRole('button', { name: /Browse files/ }).click()
+  await home.getByTestId('wheel-segment-image.remove-bg').click()
+  await expect(home.getByTestId('job-toast')).toHaveAttribute('data-status', 'done', { timeout: 30_000 })
+  const out = join(work, 'ball-no-bg.png')
+  expect((await pixel(out, 240, 180))[3]).toBeGreaterThan(220) // instant result: the whole ball
+
+  const editorPromise = app.waitForEvent('window')
+  await home.getByTestId('job-toast-follow-up').click()
+  const editor = await editorPromise
   const subject = editor.getByTestId('subject')
   await expect(subject).toHaveAttribute('data-ready', 'true', { timeout: 30_000 })
-  // Erase a band through the middle of the ball.
-  await editor.getByRole('radio', { name: 'Erase' }).click()
+  await expect(editor.getByRole('radio', { name: 'Erase' })).toHaveAttribute('aria-checked', 'true')
   const box = (await subject.boundingBox())!
   const sx = box.width / 480
   await editor.mouse.move(box.x + 200 * sx, box.y + 180 * sx)
@@ -384,14 +392,31 @@ test('remove background editor: automatic cut-out, then erase with the brush, sa
   await editor.mouse.up()
   await expect(subject).toHaveAttribute('data-strokes', '1')
   await editor.screenshot({ path: join(shots, 'remove-bg-editor.png') })
-  await editor.getByTestId('editor-export').click()
-  await expect(editor.getByTestId('editor-status')).toHaveText(/Saved ball-no-bg\.png/, { timeout: 30_000 })
-  const out = join(work, 'ball-no-bg.png')
-  expect((await sharp(out).metadata()).hasAlpha).toBe(true)
-  expect((await pixel(out, 5, 5))[3]).toBeLessThan(20) // backdrop removed
-  expect((await pixel(out, 240, 180))[3]).toBe(0) // erased by the brush
-  expect((await pixel(out, 240, 260))[3]).toBeGreaterThan(220) // rest of the ball kept
+  await editor.getByRole('button', { name: 'Update cut-out' }).click()
+  await expect(editor.getByTestId('editor-status')).toHaveText('Saved ball-no-bg.png', { timeout: 30_000 })
+  // Same file, now with the brushed stripe removed; no second copy.
+  expect((await pixel(out, 240, 180))[3]).toBe(0)
+  expect((await pixel(out, 240, 260))[3]).toBeGreaterThan(220)
+  expect((await readdir(work)).filter((n) => n.startsWith('ball-no-bg'))).toEqual(['ball-no-bg.png'])
   await editor.close()
+})
+
+test('remove background on several images is instant, one PNG each, no touch-up offer', async () => {
+  const a = join(work, 'ball-a.png')
+  const b = join(work, 'ball-b.png')
+  await ballPhoto(a)
+  await ballPhoto(b)
+  await stubFileDialog([a, b])
+  await home.getByRole('button', { name: /Browse files/ }).click()
+  await home.getByTestId('wheel-segment-image.remove-bg').click()
+  await expect(home.getByTestId('job-toast')).toHaveAttribute('data-status', 'done', { timeout: 60_000 })
+  await expect(home.getByTestId('job-toast-subtitle')).toHaveText('2 of 2 saved')
+  await expect(home.getByTestId('job-toast-follow-up')).toHaveCount(0)
+  for (const out of ['ball-a-no-bg.png', 'ball-b-no-bg.png']) {
+    expect((await pixel(join(work, out), 5, 5))[3]).toBeLessThan(20)
+    expect((await pixel(join(work, out), 240, 180))[3]).toBeGreaterThan(220)
+  }
+  await expect(home.getByTestId('job-toast')).toBeHidden({ timeout: 5000 })
 })
 
 test('redact editor: drawn box is burned in and metadata removed', async () => {

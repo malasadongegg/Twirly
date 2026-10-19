@@ -31,8 +31,8 @@ export const maskStrokeSchema = z.object({
 export type MaskStroke = z.output<typeof maskStrokeSchema>
 export const strokesSchema = z.array(maskStrokeSchema).max(500).default([])
 
-/** "Remove background": optional touch-up strokes over the automatic mask. */
-export const removeBgSchema = z.object({ strokes: strokesSchema })
+/** Touch-up: strokes over the automatic mask, optionally replacing the instant cut-out. */
+export const removeBgTouchUpSchema = z.object({ strokes: strokesSchema, replace: z.string().min(1).max(32_767).optional() })
 
 export const backgroundSchema = z.object({
   from: hex.default('#3b82f6'),

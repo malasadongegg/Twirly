@@ -9,10 +9,12 @@ export interface JobToastProps {
   progress: JobProgress | null
   onCancel: () => void
   onDismiss: () => void
+  /** A follow-up offered once the job is done (e.g. "Touch up" after Remove background). */
+  followUp?: { label: string; onClick: () => void }
 }
 
 /** Compact progress card shown at the drop point while an instant action runs. */
-export function JobToast({ title, progress, onCancel, onDismiss }: JobToastProps) {
+export function JobToast({ title, progress, onCancel, onDismiss, followUp }: JobToastProps) {
   const status = progress?.status ?? 'queued'
   const total = progress?.total ?? 1
   const completed = progress?.completed ?? 0
@@ -62,7 +64,17 @@ export function JobToast({ title, progress, onCancel, onDismiss }: JobToastProps
             <X size={14} />
           </IconButton>
         ) : (
-          <div className="flex">
+          <div className="flex items-center">
+            {status === 'done' && followUp && (
+              <button
+                type="button"
+                onClick={followUp.onClick}
+                data-testid="job-toast-follow-up"
+                className="mr-1 rounded-md border border-line-strong px-2 py-0.5 text-[11px] font-medium text-fg hover:border-accent hover:text-accent-hover"
+              >
+                {followUp.label}
+              </button>
+            )}
             {status === 'done' && lastOutput && (
               <IconButton label="Show in folder" onClick={() => void window.twirly.showInFolder(lastOutput)}>
                 <FolderOpen size={14} />

@@ -1,4 +1,5 @@
-import { readFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
+import { readFile, rename, rm, writeFile } from 'node:fs/promises'
 import sharp from 'sharp'
 import type { ActionDefinition } from '@core/actions/types'
 import type { FileInfo } from '@shared/types'
@@ -16,7 +17,7 @@ import { withPdf, pdfWorker } from '../pdf/render-client'
 import { mediaHandlers } from './media-handlers'
 import { clipboard } from 'electron'
 import { readdir } from 'node:fs/promises'
-import { isAbsolute, join } from 'node:path'
+import { dirname, isAbsolute, join } from 'node:path'
 import { splitName } from '@core/naming/output-name'
 import { officeEngineFor } from '@core/actions/more-actions'
 import { ensureLibreOffice } from '../libreoffice'
@@ -27,7 +28,7 @@ import { readText, textToDocx, textToPdf } from '@processing/text/text-docs'
 import { sha256File } from '@processing/fs/checksum'
 import { inspectPaths } from '@processing/fs/inspect'
 import { getCapabilities } from '../capabilities'
-import { backgroundSchema, redactSchema, removeBgSchema } from '@core/actions/image-extras'
+import { backgroundSchema, redactSchema, removeBgTouchUpSchema } from '@core/actions/image-extras'
 import { renderAnnotated, renderRedacted, renderWithBackground } from '@processing/images/extras'
 import { annotateSchema } from '@core/image/annotate'
 import { loadImage } from '@processing/images/process'
@@ -160,10 +161,31 @@ const backgroundHandler: Handler = eachFile(async (ctx, file) => {
   await ctx.out.write(file.path, ctx.action.suffix, 'png', data, ctx.signal)
 })
 
+/** Cut-outs made by Remove background this session: the only files a touch-up may replace. */
+const replaceableCutouts = new Set<string>()
+
 const removeBgHandler: Handler = eachFile(async (ctx, file) => {
-  const { strokes } = removeBgSchema.parse(ctx.params)
-  const { png, kept } = await removeBackground(await loadImage(file.path, ctx.signal), ctx.signal, strokes)
-  if (kept < 0.002) throw new UserFacingError(`No clear subject was found in ${file.name}.`)
+  const { png, kept } = await removeBackground(await loadImage(file.path, ctx.signal), ctx.signal)
+  // One image: say so. In a batch, one odd photo shouldn't stop the rest.
+  if (kept < 0.002 && ctx.files.length === 1) throw new UserFacingError(`No clear subject was found in ${file.name}.`)
+  replaceableCutouts.add(await ctx.out.write(file.path, ctx.action.suffix, 'png', png, ctx.signal))
+})
+
+const removeBgTouchUpHandler: Handler = eachFile(async (ctx, file) => {
+  const { strokes, replace } = removeBgTouchUpSchema.parse(ctx.params)
+  const { png } = await removeBackground(await loadImage(file.path, ctx.signal), ctx.signal, strokes)
+  if (replace && replaceableCutouts.has(replace) && dirname(replace) === dirname(file.path) && existsSync(replace)) {
+    // Replace the instant cut-out in place (temp file + rename, so it is never half-written).
+    const tmp = `${replace}.${process.pid}.tmp`
+    await writeFile(tmp, png, { signal: ctx.signal })
+    await rename(tmp, replace).catch(async (e) => {
+      await rm(tmp, { force: true })
+      throw e
+    })
+    // Reported as this job's output ("Saved …", Show in folder). Nothing can fail after the rename.
+    ctx.out.track(replace)
+    return
+  }
   await ctx.out.write(file.path, ctx.action.suffix, 'png', png, ctx.signal)
 })
 
@@ -331,6 +353,7 @@ const HANDLERS: Record<string, Handler> = {
   'image.annotate': annotateHandler,
   'image.background': backgroundHandler,
   'image.remove-bg': removeBgHandler,
+  'image.remove-bg-touchup': removeBgTouchUpHandler,
   'image.redact': redactHandler,
   'pdf.to-png': pdfToImages('png'),
   'pdf.to-jpeg': pdfToImages('jpeg'),

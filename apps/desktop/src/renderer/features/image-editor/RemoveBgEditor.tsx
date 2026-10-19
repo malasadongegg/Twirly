@@ -18,13 +18,14 @@ const CHECKER: React.CSSProperties = {
  * "Remove background": shows the automatic cut-out at once. Keep/Erase brushes fix what the model
  * got wrong; the strokes are re-applied to the full-resolution mask on save.
  */
-export function RemoveBgEditor({ actionId, file }: { actionId: string; file: FileInfo }) {
+export function RemoveBgEditor({ actionId, file, replace }: { actionId: string; file: FileInfo; replace?: string }) {
   const { preview, error: loadError } = useImagePreview(file.path, PREVIEW_MAX)
   const job = useEditorJob(actionId, file.path)
   const [areaRef, area] = useBoxSize<HTMLDivElement>()
   const mask = useCutoutMask(file.path, PREVIEW_MAX, true)
   const { strokes, add, undo, reset } = useStrokes()
-  const [tool, setTool] = useState<BrushTool>('off')
+  // Opened to fix something: start with a brush ready.
+  const [tool, setTool] = useState<BrushTool>('erase')
   const maxDim = preview ? Math.max(preview.width, preview.height) : 1000
   const [brush, setBrush] = useState<number | null>(null)
   const brushSize = brush ?? Math.max(2, Math.round(maxDim * 0.04))
@@ -38,9 +39,9 @@ export function RemoveBgEditor({ actionId, file }: { actionId: string; file: Fil
         <EditorFooter
           {...job}
           idle={mask.busy ? 'Finding the subject…' : preview ? `Output ${preview.width} × ${preview.height} px · transparent PNG` : ''}
-          primary="Save cut-out"
+          primary={replace ? 'Update cut-out' : 'Save cut-out'}
           primaryDisabled={!preview || !mask.url}
-          onPrimary={() => void job.run({ strokes })}
+          onPrimary={() => void job.run({ strokes, replace })}
         />
       }
     >

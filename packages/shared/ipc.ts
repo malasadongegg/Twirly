@@ -16,6 +16,8 @@ export type RunJobRequest = z.input<typeof runJobSchema>
 export const openEditorSchema = z.object({
   actionId: z.string().min(1).max(100),
   paths: z.array(pathString).min(1).max(500),
+  /** Touch-up: the cut-out this editor's save should replace. */
+  replace: pathString.optional(),
 })
 export type OpenEditorRequest = z.infer<typeof openEditorSchema>
 
@@ -34,4 +36,5 @@ export type WheelShowPayload = z.infer<typeof wheelShowSchema>
 export interface EditorContext {
   actionId: string
   paths: string[]
+  replace?: string
 }

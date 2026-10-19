@@ -20,7 +20,7 @@ export interface WheelState {
   actions: ActionDefinition[]
   emptyReason?: string
   active: number | null
-  job?: { id: string; title: string }
+  job?: { id: string; title: string; actionId: string }
   error?: string
   /** Opened from a drop whose types were unknown mid-drag: the user now clicks a segment. */
   clickToChoose?: boolean
@@ -117,7 +117,7 @@ export function useWheelSession(opts: { onFinished?: () => void } = {}) {
           return
         }
         const { jobId } = await window.twirly.runJob({ actionId: action.id, paths, params: {} })
-        setState((s) => ({ ...s, phase: 'running', job: { id: jobId, title: action.title } }))
+        setState((s) => ({ ...s, phase: 'running', job: { id: jobId, title: action.title, actionId: action.id } }))
       } catch (err) {
         setState((s) => ({ ...s, phase: 'error', error: (err as Error).message.replace(/^Error invoking remote method '[^']+': (Error: )?/, '') }))
       }

@@ -10,6 +10,8 @@ export const WHEEL_SIZE = 320
 
 /** Auto-dismiss delays after a job ends (failures stay until dismissed). */
 const DISMISS_AFTER = { done: 1400, cancelled: 900, failed: 0 } as const
+/** Long enough to reach a follow-up button such as "Touch up". */
+const DISMISS_WITH_FOLLOW_UP = 6000
 
 /**
  * Renders the wheel, then morphs into the progress toast once an instant action starts.
@@ -20,15 +22,30 @@ export function WheelStage({ session, x, y, interactive, autoDismissErrors = fal
   const motionPrefs = useMotionPrefs()
   const progress = useJob(state.job?.id ?? null)
 
+  // After a one-image Remove background: offer the brush editor on the same photo; saving there
+  // replaces the cut-out that was just made.
+  const cutout = progress?.status === 'done' && state.job?.actionId === 'image.remove-bg' && state.files.length === 1 ? progress.outputs[0] : undefined
+  const followUp = cutout
+    ? {
+        label: 'Touch up',
+        onClick: () => {
+          void window.twirly.openEditor({ actionId: 'image.remove-bg-touchup', paths: [state.files[0]!.path], replace: cutout })
+          close()
+        },
+      }
+    : undefined
+  const hasFollowUp = !!followUp
+
   useEffect(() => {
     const status = progress?.status
     // Failures stay until dismissed in the main window; the floating wheel clears them itself
     // after a while so it never lingers unnoticed over other apps.
-    const delay = status === 'done' || status === 'cancelled' ? DISMISS_AFTER[status] : status === 'failed' && autoDismissErrors ? 7000 : null
+    const delay =
+      status === 'done' && hasFollowUp ? DISMISS_WITH_FOLLOW_UP : status === 'done' || status === 'cancelled' ? DISMISS_AFTER[status] : status === 'failed' && autoDismissErrors ? 7000 : null
     if (delay === null) return
     const t = setTimeout(close, delay)
     return () => clearTimeout(t)
-  }, [progress?.status, close, autoDismissErrors])
+  }, [progress?.status, close, autoDismissErrors, hasFollowUp])
 
   // Validation errors shown on the floating wheel clear themselves too.
   useEffect(() => {
@@ -78,7 +95,7 @@ export function WheelStage({ session, x, y, interactive, autoDismissErrors = fal
         )}
         {state.phase === 'running' && state.job && (
           <motion.div key="toast" className="pointer-events-auto absolute" style={{ left: -144, top: -40 }}>
-            <JobToast title={state.job.title} progress={progress} onCancel={cancelJob} onDismiss={close} />
+            <JobToast title={state.job.title} progress={progress} onCancel={cancelJob} onDismiss={close} followUp={followUp} />
           </motion.div>
         )}
       </AnimatePresence>
