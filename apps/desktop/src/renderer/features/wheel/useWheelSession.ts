@@ -65,7 +65,7 @@ export function useWheelSession(opts: { onFinished?: () => void } = {}) {
       files,
       real,
       actions,
-      emptyReason: unknownWhileDragging ? 'Drop to see actions' : emptyReason,
+      emptyReason: unknownWhileDragging && actions.length === 0 ? 'Drop to see actions' : emptyReason,
       active: null,
       clickToChoose,
     })

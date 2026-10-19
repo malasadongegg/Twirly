@@ -77,3 +77,18 @@ describe('provisionalFiles', () => {
     ])
   })
 })
+
+describe('provisional types for Office, text and archives', () => {
+  it('recognizes the long Office MIME types Windows reports while dragging', () => {
+    const files = provisionalFiles([
+      { kind: 'file', type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' },
+      { kind: 'file', type: 'application/x-zip-compressed' },
+      { kind: 'file', type: 'text/csv' },
+    ])
+    expect(files.map((f) => [f.kind, f.format])).toEqual([
+      ['document', 'docx'],
+      ['archive', 'zip'],
+      ['text', 'csv'],
+    ])
+  })
+})

@@ -512,3 +512,14 @@ test('new kinds: folder → ZIP → extract, copy path, text → PDF', async () 
   expect((await PDFDocument.load(await readFile(join(folder, 'notes.pdf')))).getPageCount()).toBe(1)
   await expect(home.getByTestId('job-toast')).toBeHidden({ timeout: 5000 })
 })
+
+test('dragging a .docx shows Word actions immediately (Office MIME type)', async () => {
+  const docx = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  await syntheticDrag(home, 'dragenter', 220, 300, [docx])
+  await expect(home.getByTestId('wheel-segment-document.extract-images')).toBeVisible()
+  const caps = await home.evaluate(() => window.twirly.capabilities())
+  if (caps.office.word || caps.libreoffice.available) await expect(home.getByTestId('wheel-segment-document.to-pdf')).toBeVisible()
+  await expect(home.getByTestId('radial-wheel')).toHaveAttribute('data-hub', '1 file')
+  await syntheticDrag(home, 'dragleave', 0, 0, [docx])
+  await expect(home.getByTestId('radial-wheel')).toBeHidden({ timeout: 2000 })
+})

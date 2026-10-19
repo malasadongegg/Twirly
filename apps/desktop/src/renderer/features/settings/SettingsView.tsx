@@ -390,8 +390,11 @@ export function SettingsView() {
             <dd>{caps.ffmpeg.available ? `${caps.ffmpeg.version} · ${caps.ffmpeg.encoders.length} encoders` : 'Not found (audio/video actions hidden)'}</dd>
             <dt className="text-fg-3">FFprobe</dt>
             <dd>{caps.ffprobe.available ? 'Available' : 'Not found'}</dd>
-            <dt className="text-fg-3">LibreOffice</dt>
-            <dd>{caps.libreoffice.available ? 'Available' : 'Not found (document conversion hidden)'}</dd>
+            <dt className="text-fg-3">Office → PDF</dt>
+            <dd>
+              {[caps.office.word && 'Word', caps.office.excel && 'Excel', caps.office.powerpoint && 'PowerPoint'].filter(Boolean).join(', ') || 'Microsoft Office not found'}
+              {caps.libreoffice.available ? ' · LibreOffice' : ''}
+            </dd>
             <dt className="text-fg-3">Version</dt>
             <dd>
               {diag.version} · Electron {diag.electron}
