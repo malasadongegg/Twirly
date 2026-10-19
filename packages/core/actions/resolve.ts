@@ -11,6 +11,8 @@ const KIND_NOUN: Record<string, [string, string]> = {
   audio: ['audio file', 'audio files'],
   document: ['document', 'documents'],
   text: ['text file', 'text files'],
+  archive: ['archive', 'archives'],
+  folder: ['folder', 'folders'],
   unknown: ['unsupported file', 'unsupported files'],
 }
 
@@ -40,8 +42,6 @@ export function resolveActions(
   opts: { exclusive?: boolean } = {},
 ): ResolvedActions {
   if (files.length === 0) return { actions: [], emptyReason: 'No files' }
-  if (files.every((f) => f.kind === 'unknown')) return { actions: [], emptyReason: 'Unsupported file type' }
-
   const valid = registry.filter(
     (a) =>
       files.length >= a.minFiles &&
@@ -51,6 +51,7 @@ export function resolveActions(
   )
 
   if (valid.length === 0) {
+    if (files.every((f) => f.kind === 'unknown')) return { actions: [], emptyReason: 'Unsupported file type' }
     const kinds = new Set(files.map((f) => f.kind))
     const undecodable = files.find((f) => f.kind === 'image' && !caps.imageInput.includes(f.format))
     if (undecodable) return { actions: [], emptyReason: `${undecodable.format.toUpperCase()} images are not supported yet` }

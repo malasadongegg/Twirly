@@ -28,6 +28,11 @@ export type ActionIcon =
   | 'eye-off'
   | 'tag'
   | 'pen-line'
+  | 'clipboard'
+  | 'archive'
+  | 'fingerprint'
+  | 'folder-open'
+  | 'send'
 
 export type ActionMode = 'instant' | 'editor'
 export type EditorKind = 'image' | 'pdf' | 'media' | 'background' | 'redact' | 'metadata' | 'annotate'

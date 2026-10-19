@@ -33,6 +33,8 @@ export function hubLabelFor(state: WheelState): string {
   if (state.emptyReason) return state.emptyReason
   const n = state.files.length
   if (n === 0) return state.phase === 'open' ? 'Move to choose' : ''
+  // Unknown types mid-drag (folders, some videos): the centre reveals the real actions on drop.
+  if (!state.real && state.files.every((f) => f.kind === 'unknown')) return 'Drop in the centre for all actions'
   if (!state.real) return n === 1 ? '1 file' : `${n} files`
   const total = state.files.reduce((s, f) => s + Math.max(f.size, 0), 0)
   return n === 1 ? formatBytes(total) : `${describeSelection(state.files)} · ${formatBytes(total)}`
@@ -136,7 +138,7 @@ export function useWheelSession(opts: { onFinished?: () => void } = {}) {
     async (paths: string[], index: number | null) => {
       const s = stateRef.current
       const chosen = index !== null ? s.actions[index] : undefined
-      if (!chosen && paths.length > 0 && !s.real && s.actions.length === 0 && s.files.every((f) => f.kind === 'unknown')) {
+      if (!chosen && paths.length > 0 && !s.real && s.files.every((f) => f.kind === 'unknown')) {
         // Types were unknown mid-drag: inspect the real files and let the user pick by click.
         const { files } = await window.twirly.inspect(paths)
         if (files.length > 0) await resolve(files, true, true)

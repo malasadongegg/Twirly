@@ -32,6 +32,19 @@ EXIF orientation is always applied. Metadata is kept on conversions and edits (o
 | Images → PDF | sharp + pdf-lib | One page per image at pixel size. |
 | Encrypted PDFs | — | Reported as password-protected. |
 
+## Documents, text, archives, folders
+
+| Input | Actions | Notes |
+|---|---|---|
+| DOCX/DOC/RTF/ODT, XLSX/XLS/ODS, PPTX/PPT/ODP | → PDF | Through the installed Office app (Word/Excel/PowerPoint via COM, paths passed in environment variables), else LibreOffice. Word verified in tests; Excel/PowerPoint paths not yet tested. |
+| DOCX/PPTX/XLSX/ODF | Extract images | Copies `word/media`, `ppt/media`, `xl/media`, `Pictures/` entries as-is. |
+| PDF | Extract images | JPEG/JPEG 2000 copied byte-for-byte; 8-bit RGB/gray → PNG (soft mask kept as alpha); other encodings skipped and counted. |
+| TXT/MD/CSV/JSON/LOG/XML/YAML/INI | → PDF, → DOCX, Combine | PDF embeds Segoe UI (Consolas for data formats), so Unicode renders; Markdown headings and bullets understood. Legacy Windows-1252 files decoded. |
+| ZIP | Extract here | yauzl; rejects path traversal, symlinks, password-protected entries, > 100k entries, and archives claiming > 20 GB or > 200:1 expansion. Single top-level folder is recreated, not nested. |
+| 7z / RAR | — | Detected; extraction not supported yet. |
+| Folder | ZIP, images → PDF, copy path | Symlinks/junctions are never followed when zipping. |
+| Anything | Copy path, SHA-256 (files), ZIP | Paths/checksums go to the clipboard. |
+
 ## Audio / video (FFmpeg on PATH; dev machine: 9.0.2 full build)
 
 | Action | Encoders required |
@@ -42,6 +55,7 @@ EXIF orientation is always applied. Metadata is kept on conversions and edits (o
 | Extract audio | stream copy for AAC/MP3; else libmp3lame |
 | → MP3 / M4A / WAV / FLAC / OGG | libmp3lame / aac / pcm_s16le / flac / libvorbis |
 | Normalize | loudnorm (EBU R128, −16 LUFS), same container |
+| Shrink for Messenger 25 MB / Discord 10 MB | Two-pass libx264 + AAC at a bitrate computed from length; steps down to 720p/480p/360p when needed; verified under target, one automatic retry. |
 
 Inputs: anything FFmpeg/ffprobe can read that is detected as audio or video (MP4/MOV/MKV/WEBM/AVI,
 MP3/WAV/FLAC/OGG/M4A/AAC).

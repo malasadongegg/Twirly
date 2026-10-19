@@ -1,6 +1,7 @@
 import { basename, dirname } from 'node:path'
 import { outputFileName, type NamingOptions } from '@core/naming/output-name'
-import { commitOutput, commitTempFile, releaseOutput, reserveOutputPath, tempPathFor } from './fs/atomic'
+import { commitOutput, commitTempFile, releaseOutput, reserveOutputDir, reserveOutputPath, tempPathFor } from './fs/atomic'
+import { sanitizeFileName } from '@core/naming/output-name'
 
 export interface OutputOptions {
   /** Absolute directory for every output; defaults to each source file's folder. */
@@ -60,6 +61,13 @@ export class OutputWriter {
     }
     this.written.push(path)
     return path
+  }
+
+  /** Create a new, collision-safe folder for outputs (e.g. extracted images), tracked for rollback. */
+  async reserveDir(sourcePath: string, name: string): Promise<string> {
+    const dir = await reserveOutputDir(this.dirFor(sourcePath), sanitizeFileName(name))
+    this.written.push(dir)
+    return dir
   }
 
   /** Record an output written by another writer (e.g. the image pipeline). */

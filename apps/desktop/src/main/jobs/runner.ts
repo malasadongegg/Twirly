@@ -103,6 +103,9 @@ export class JobRunner {
           lastEmit = now
           this.emit(job, { completed: Math.min(completed, job.progress.total), fraction, outputs: [...out.outputs] })
         },
+        setMessage: (message) => {
+          job.progress.message = message
+        },
         perFile: async (_index, fn) => {
           const mark = out.outputs.length
           try {

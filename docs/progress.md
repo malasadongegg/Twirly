@@ -42,6 +42,14 @@ npm run typecheck; npm run lint
 | 11 QA | 🟡 | 174 unit/integration + 20 app E2E + 2 packaged + 1 live context-menu test. Manual checklist items covered by the live spikes; DPI and clean-VM still open. |
 | 12 Packaging | 🟡 | NSIS per-user installer (121 MB), rebuilt with all features; install → smoke test → uninstall verified on this machine. Remaining: clean-VM test (user skipped for now) and code signing. |
 
+## Session 3 (2026-10-19): expansion
+
+Added folders and archives as kinds, Copy path, SHA-256, ZIP compress/extract (with zip-slip and
+zip-bomb guards), Extract images (PDF, DOCX/PPTX/XLSX), Office → PDF (installed Office or
+LibreOffice), Text → PDF/DOCX and Combine, Folder images → PDF, and Shrink for Messenger/Discord.
+Fixed the Explorer drag-summon closing after 0.7 s when the user pauses after Shift (now waits
+for the button release). That fix still needs a manual check by the user.
+
 ## Features in the reference video vs. Twirly
 
 | Reference | Twirly |

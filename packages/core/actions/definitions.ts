@@ -3,6 +3,7 @@ import type { ActionDefinition } from './types'
 import { IMAGE_OUTPUTS } from './image-formats'
 import { DEFAULT_PDF_ORDER, IMAGES_TO_PDF, PDF_ACTIONS } from './pdf-actions'
 import { DEFAULT_AUDIO_ORDER, DEFAULT_VIDEO_ORDER, MEDIA_ACTIONS } from './media-actions'
+import { MORE_ACTIONS, MORE_ORDERS } from './more-actions'
 
 const needsImageOutput = (format: string) => (caps: Capabilities) =>
   caps.imageOutput.includes(format) ? null : `This build cannot encode ${format.toUpperCase()}`
@@ -144,6 +145,7 @@ export const ACTIONS: ActionDefinition[] = [
   { ...IMAGES_TO_PDF, canRead: canDecodeImage },
   ...PDF_ACTIONS,
   ...MEDIA_ACTIONS,
+  ...MORE_ACTIONS,
 ]
 
 export const ACTIONS_BY_ID: ReadonlyMap<string, ActionDefinition> = new Map(ACTIONS.map((a) => [a.id, a]))
@@ -169,6 +171,7 @@ export const DEFAULT_WHEEL_ORDER: Record<string, string[]> = {
     'image.convert.bmp',
   ],
   pdf: DEFAULT_PDF_ORDER,
-  video: DEFAULT_VIDEO_ORDER,
+  video: [...DEFAULT_VIDEO_ORDER.slice(0, 3), 'video.fit-25mb', ...DEFAULT_VIDEO_ORDER.slice(3), 'video.fit-10mb'],
   audio: DEFAULT_AUDIO_ORDER,
+  ...MORE_ORDERS,
 }

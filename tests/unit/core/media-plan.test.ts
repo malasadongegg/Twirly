@@ -76,6 +76,7 @@ describe('media actions in the wheel', () => {
     ffmpeg: { available: true, encoders, path: 'ffmpeg' },
     ffprobe: { available: true, path: 'ffprobe' },
     libreoffice: { available: false },
+    office: { word: false, excel: false, powerpoint: false },
   })
   const vid: FileInfo = { path: 'C:\\v.mov', name: 'v.mov', ext: 'mov', size: 1, kind: 'video', format: 'mov', extensionMismatch: false }
 
@@ -88,6 +89,6 @@ describe('media actions in the wheel', () => {
 
   it('hides all media actions without FFmpeg', () => {
     const none: Capabilities = { ...caps([]), ffmpeg: { available: false, encoders: [] }, ffprobe: { available: false } }
-    expect(resolveActions([vid], none).actions).toEqual([])
+    expect(resolveActions([vid], none).actions.filter((a) => a.id.startsWith('video.'))).toEqual([])
   })
 })

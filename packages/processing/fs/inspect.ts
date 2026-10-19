@@ -18,7 +18,7 @@ async function readHead(path: string): Promise<Uint8Array> {
 export async function inspectPath(path: string): Promise<FileInfo | FileRejection> {
   try {
     const st = await stat(path)
-    if (st.isDirectory()) return { path, reason: 'Folders are not supported yet' }
+    if (st.isDirectory()) return { path, name: basename(path) || path, ext: '', size: 0, kind: 'folder', format: 'folder', extensionMismatch: false }
     if (!st.isFile()) return { path, reason: 'Not a regular file' }
     const name = basename(path)
     const ext = splitName(name).ext.toLowerCase()

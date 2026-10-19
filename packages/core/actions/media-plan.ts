@@ -180,3 +180,38 @@ export function parseProbe(json: string): MediaInfo {
     audio: a ? { codec: a.codec_name ?? 'unknown', sampleRate: num(a.sample_rate), channels: a.channels ?? null, bitRate: num(a.bit_rate) } : undefined,
   }
 }
+
+export interface FitPlan {
+  /** Output height (keeps aspect), or undefined to keep the source size. */
+  height?: number
+  videoKbps: number
+  audioKbps: number
+  durationSec: number
+}
+
+/**
+ * Bitrates for a two-pass encode that lands under `targetBytes` (with ~6 % headroom for the
+ * container). Resolution steps down when the bitrate gets too low for it to look good.
+ */
+export function planFitSize(info: MediaInfo, targetBytes: number, sourceBytes: number, safety = 0.94): FitPlan {
+  if (sourceBytes > 0 && sourceBytes <= targetBytes) throw new PlanError(`Already under ${Math.round(targetBytes / 1024 / 1024)} MB.`)
+  if (!info.video) throw new PlanError('No video stream found.')
+  if (!(info.durationSec > 0)) throw new PlanError('Could not read the video length.')
+  const audioKbps = info.audio ? (info.durationSec > 600 ? 64 : 96) : 0
+  const totalKbps = (targetBytes * 8 * safety) / info.durationSec / 1000
+  const videoKbps = Math.floor(totalKbps - audioKbps)
+  if (videoKbps < 120) throw new PlanError(`This video is too long to fit in ${Math.round(targetBytes / 1024 / 1024)} MB at watchable quality.`)
+  const src = info.video.height
+  const height = videoKbps < 500 ? 360 : videoKbps < 900 ? 480 : videoKbps < 2000 ? 720 : 1080
+  return { height: height < src ? height : undefined, videoKbps, audioKbps, durationSec: info.durationSec }
+}
+
+/** FFmpeg arguments for pass 1 (analysis, no output) and pass 2 (the real file). */
+export function fitPassArgs(plan: FitPlan, passLog: string): { pass1: string[]; pass2: string[] } {
+  const scale = plan.height ? ['-vf', `scale=-2:${plan.height}:flags=lanczos`] : []
+  const video = [...scale, '-c:v', 'libx264', '-preset', 'medium', '-b:v', `${plan.videoKbps}k`, '-pix_fmt', 'yuv420p', '-passlogfile', passLog]
+  return {
+    pass1: [...video, '-pass', '1', '-an', '-f', 'null'],
+    pass2: [...video, '-pass', '2', ...(plan.audioKbps ? ['-c:a', 'aac', '-b:a', `${plan.audioKbps}k`] : ['-an']), '-movflags', '+faststart'],
+  }
+}

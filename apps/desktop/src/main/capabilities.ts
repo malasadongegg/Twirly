@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process'
+import { existsSync } from 'node:fs'
 import { promisify } from 'node:util'
 import type { Capabilities } from '@shared/types'
 import { configureHeicDecoder, detectImageInputs, detectImageOutputs } from '@processing/images/process'
@@ -23,6 +24,16 @@ async function detectFfmpeg(path: string): Promise<Capabilities['ffmpeg']> {
   return { available: true, path, version: /ffmpeg version (\S+)/.exec(version)?.[1], encoders }
 }
 
+const LIBREOFFICE_DEFAULT = 'C:\\Program Files\\LibreOffice\\program\\soffice.exe'
+
+/** Office apps registered for COM automation (registry only: nothing is launched). */
+async function detectOffice(): Promise<Capabilities['office']> {
+  if (process.platform !== 'win32') return { word: false, excel: false, powerpoint: false }
+  const has = async (progId: string) => (await probe('reg.exe', ['query', `HKCR\\${progId}\\CLSID`])) !== null
+  const [word, excel, powerpoint] = await Promise.all([has('Word.Application'), has('Excel.Application'), has('PowerPoint.Application')])
+  return { word, excel, powerpoint }
+}
+
 let cached: Promise<Capabilities> | null = null
 
 /** Detect once per session; `refresh` re-runs detection (Settings → Diagnostics). */
@@ -45,7 +56,8 @@ export function getCapabilities(opts: { ffmpegPath?: string; refresh?: boolean }
       imageOutput: detectImageOutputs(),
       ffmpeg,
       ffprobe: { available: ffprobeOut !== null, path: ffprobeOut !== null ? ffprobeCmd : undefined },
-      libreoffice: { available: soffice !== null },
+      libreoffice: { available: soffice !== null || existsSync(LIBREOFFICE_DEFAULT), path: soffice !== null ? 'soffice' : existsSync(LIBREOFFICE_DEFAULT) ? LIBREOFFICE_DEFAULT : undefined },
+      office: await detectOffice(),
     }
   })()
   return cached

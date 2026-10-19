@@ -1,4 +1,4 @@
-export type FileKind = 'image' | 'pdf' | 'video' | 'audio' | 'document' | 'text' | 'unknown'
+export type FileKind = 'image' | 'pdf' | 'video' | 'audio' | 'document' | 'text' | 'archive' | 'folder' | 'unknown'
 
 /** A file Twirly has inspected in the main process. */
 export interface FileInfo {
@@ -32,6 +32,8 @@ export interface Capabilities {
   ffmpeg: { available: boolean; path?: string; version?: string; encoders: string[] }
   ffprobe: { available: boolean; path?: string }
   libreoffice: { available: boolean; path?: string }
+  /** Microsoft Office apps registered for automation (used for Office → PDF). */
+  office: { word: boolean; excel: boolean; powerpoint: boolean }
 }
 
 export type JobStatus = 'queued' | 'running' | 'done' | 'failed' | 'cancelled'
@@ -47,6 +49,8 @@ export interface JobProgress {
   /** 0..1 within the current file, or null when indeterminate. */
   fraction: number | null
   outputs: string[]
+  /** Replaces "n of m saved" when the job's result is not files (e.g. "Path copied"). */
+  message?: string
   error?: { message: string; detail?: string }
 }
 

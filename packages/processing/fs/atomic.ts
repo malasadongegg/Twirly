@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { open, rename, rm, writeFile } from 'node:fs/promises'
+import { mkdir, open, rename, rm, writeFile } from 'node:fs/promises'
 import { basename, dirname, join } from 'node:path'
 import { withCounter } from '@core/naming/output-name'
 
@@ -21,6 +21,21 @@ export async function reserveOutputPath(dir: string, fileName: string, maxAttemp
     }
   }
   throw new Error(`No free output name for ${fileName} after ${maxAttempts} attempts`)
+}
+
+/** Create a new, collision-safe folder in `dir` (mkdir without recursion fails if it exists). */
+export async function reserveOutputDir(dir: string, name: string, maxAttempts = 9999): Promise<string> {
+  for (let n = 1; n <= maxAttempts; n++) {
+    const candidate = join(dir, n === 1 ? name : `${name} (${n})`)
+    try {
+      await mkdir(candidate)
+      return candidate
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'EEXIST') continue
+      throw err
+    }
+  }
+  throw new Error(`No free folder name for ${name}`)
 }
 
 /** Unique temp path next to `finalPath`, so the final rename never crosses volumes. */
@@ -57,5 +72,7 @@ export async function commitTempFile(tmpPath: string, finalPath: string): Promis
 
 /** Remove a reserved placeholder (or partial output) after failure or cancellation. */
 export async function releaseOutput(path: string): Promise<void> {
-  await rm(path, { force: true })
+  // Recursive because some outputs are folders (extracted archives, image folders); these
+  // paths are always ones Twirly reserved itself.
+  await rm(path, { force: true, recursive: true })
 }

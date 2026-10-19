@@ -94,9 +94,11 @@ test('dragging images over the window opens a contextual wheel and tracks the ho
   await expect(wheel).toBeHidden({ timeout: 2000 })
 })
 
-test('mixed selections explain why there are no actions', async () => {
+test('mixed selections get only the actions they share (zip, copy path)', async () => {
   await syntheticDrag(home, 'dragenter', 220, 300, ['image/png', 'application/pdf'])
-  await expect(home.getByTestId('radial-wheel')).toHaveAttribute('data-hub', 'No common actions for 1 image, 1 PDF')
+  await expect(home.getByTestId('radial-wheel')).toHaveAttribute('data-hub', '2 files')
+  await expect(home.getByTestId('wheel-segment-file.zip')).toBeVisible()
+  await expect(home.getByTestId('wheel-segment-image.crop')).toHaveCount(0)
   await home.waitForTimeout(200)
   await home.screenshot({ path: join(shots, 'wheel-mixed.png') })
   await syntheticDrag(home, 'dragleave', 0, 0, ['image/png', 'application/pdf'])
@@ -467,5 +469,46 @@ test('HEIC tile-grid photo converts to JPG through the wheel', async () => {
   await expect(home.getByTestId('job-toast')).toHaveAttribute('data-status', 'done', { timeout: 60_000 })
   const meta = await sharp(join(work, 'phone-converted.jpg')).metadata()
   expect([meta.format, meta.width, meta.height]).toEqual(['jpeg', 2560, 1440])
+  await expect(home.getByTestId('job-toast')).toBeHidden({ timeout: 5000 })
+})
+
+test('new kinds: folder → ZIP → extract, copy path, text → PDF', async () => {
+  const { mkdir: mk } = await import('node:fs/promises')
+  const folder = join(work, 'Trip')
+  await mk(join(folder, 'photos'), { recursive: true })
+  await writeFile(join(folder, 'photos', 'a.txt'), 'sun')
+  await writeFile(join(folder, 'notes.txt'), 'Kumusta! mañana ₱100')
+
+  // Folder → ZIP
+  await stubFileDialog([folder])
+  await home.getByRole('button', { name: /Browse files/ }).click()
+  await expect(home.getByTestId('wheel-segment-file.zip')).toBeVisible()
+  await home.getByTestId('wheel-segment-file.zip').click()
+  await expect(home.getByTestId('job-toast')).toHaveAttribute('data-status', 'done', { timeout: 20_000 })
+  await expect(home.getByTestId('job-toast')).toBeHidden({ timeout: 5000 })
+
+  // ZIP → Extract here (folder "Trip" exists, so it becomes "Trip (2)")
+  await stubFileDialog([join(work, 'Trip.zip')])
+  await home.getByRole('button', { name: /Browse files/ }).click()
+  await home.getByTestId('wheel-segment-archive.extract').click()
+  await expect(home.getByTestId('job-toast-subtitle')).toHaveText('2 files extracted', { timeout: 20_000 })
+  expect(await readFile(join(work, 'Trip (2)', 'photos', 'a.txt'), 'utf8')).toBe('sun')
+  await expect(home.getByTestId('job-toast')).toBeHidden({ timeout: 5000 })
+
+  // Copy path lands on the clipboard
+  await stubFileDialog([folder])
+  await home.getByRole('button', { name: /Browse files/ }).click()
+  await home.getByTestId('wheel-segment-file.copy-path').click()
+  await expect(home.getByTestId('job-toast-subtitle')).toHaveText('Path copied', { timeout: 10_000 })
+  expect(await app.evaluate(({ clipboard }) => clipboard.readText())).toBe(folder)
+  await expect(home.getByTestId('job-toast')).toBeHidden({ timeout: 5000 })
+
+  // Text → PDF
+  await stubFileDialog([join(folder, 'notes.txt')])
+  await home.getByRole('button', { name: /Browse files/ }).click()
+  await home.getByTestId('wheel-segment-text.to-pdf').click()
+  await expect(home.getByTestId('job-toast')).toHaveAttribute('data-status', 'done', { timeout: 20_000 })
+  const { PDFDocument } = await import('pdf-lib')
+  expect((await PDFDocument.load(await readFile(join(folder, 'notes.pdf')))).getPageCount()).toBe(1)
   await expect(home.getByTestId('job-toast')).toBeHidden({ timeout: 5000 })
 })

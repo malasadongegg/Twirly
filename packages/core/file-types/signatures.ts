@@ -63,17 +63,19 @@ export function detectFormat(bytes: Uint8Array, ext: string): DetectedFormat {
   if (ascii(bytes, 0, 'OggS')) return { format: 'ogg', kind: 'audio' }
   if (startsWith(bytes, [0xff, 0xf1]) || startsWith(bytes, [0xff, 0xf9])) return { format: 'aac', kind: 'audio' }
 
-  if (startsWith(bytes, [0x50, 0x4b, 0x03, 0x04])) {
-    if (e === 'docx' || e === 'xlsx' || e === 'pptx' || e === 'odt') return { format: e, kind: 'document' }
-    return { format: 'zip', kind: 'unknown' }
+  if (startsWith(bytes, [0x50, 0x4b, 0x03, 0x04]) || startsWith(bytes, [0x50, 0x4b, 0x05, 0x06])) {
+    if (['docx', 'xlsx', 'pptx', 'odt', 'ods', 'odp'].includes(e)) return { format: e, kind: 'document' }
+    return { format: 'zip', kind: 'archive' }
   }
+  if (startsWith(bytes, [0x37, 0x7a, 0xbc, 0xaf, 0x27, 0x1c])) return { format: '7z', kind: 'archive' }
+  if (ascii(bytes, 0, 'Rar!')) return { format: 'rar', kind: 'archive' }
   if (startsWith(bytes, [0xd0, 0xcf, 0x11, 0xe0])) {
     if (e === 'doc' || e === 'xls' || e === 'ppt') return { format: e, kind: 'document' }
     return { format: 'ole', kind: 'unknown' }
   }
   if (ascii(bytes, 0, '{\\rtf')) return { format: 'rtf', kind: 'document' }
 
-  if (['txt', 'md', 'csv', 'log', 'json'].includes(e) && looksLikeText(bytes)) return { format: e, kind: 'text' }
+  if (['txt', 'md', 'markdown', 'csv', 'log', 'json', 'xml', 'yml', 'yaml', 'ini'].includes(e) && looksLikeText(bytes)) return { format: e === 'markdown' ? 'md' : e, kind: 'text' }
   return { format: 'unknown', kind: 'unknown' }
 }
 

@@ -14,6 +14,18 @@ import { basename } from 'node:path'
 import { UserFacingError } from '@processing/errors'
 import { withPdf, pdfWorker } from '../pdf/render-client'
 import { mediaHandlers } from './media-handlers'
+import { clipboard } from 'electron'
+import { readdir } from 'node:fs/promises'
+import { join } from 'node:path'
+import { splitName } from '@core/naming/output-name'
+import { officeEngineFor } from '@core/actions/more-actions'
+import { extractMatching, extractZip, zipPaths } from '@processing/archive/zip'
+import { extractPdfImages } from '@processing/pdf/extract-images'
+import { officeToPdf } from '@processing/office/convert'
+import { readText, textToDocx, textToPdf } from '@processing/text/text-docs'
+import { sha256File } from '@processing/fs/checksum'
+import { inspectPaths } from '@processing/fs/inspect'
+import { getCapabilities } from '../capabilities'
 import { backgroundSchema, redactSchema } from '@core/actions/image-extras'
 import { renderAnnotated, renderRedacted, renderWithBackground } from '@processing/images/extras'
 import { annotateSchema } from '@core/image/annotate'
@@ -30,6 +42,8 @@ export interface JobContext {
   progress(completed: number, fraction: number | null): void
   /** Run work for one file; on failure or cancel, removes outputs that file had already produced. */
   perFile<T>(index: number, fn: () => Promise<T>): Promise<T>
+  /** Text shown instead of "n of m saved" when the result isn't files. */
+  setMessage(message: string): void
 }
 
 export type Handler = (ctx: JobContext) => Promise<void>
@@ -174,7 +188,122 @@ const pdfToDocx: Handler = eachFile(async (ctx, file, i) => {
   await ctx.out.write(file.path, '', 'docx', buildDocx(pages, title), ctx.signal)
 })
 
+// ----- generic file actions -----
+
+const copyPath: Handler = async (ctx) => {
+  clipboard.writeText(ctx.files.map((f) => f.path).join('\r\n'))
+  ctx.setMessage(ctx.files.length === 1 ? 'Path copied' : `${ctx.files.length} paths copied`)
+  ctx.progress(ctx.files.length, 1)
+}
+
+const checksum: Handler = async (ctx) => {
+  const lines: string[] = []
+  for (let i = 0; i < ctx.files.length; i++) {
+    const f = ctx.files[i]!
+    const hash = await sha256File(f.path, ctx.signal)
+    lines.push(ctx.files.length === 1 ? hash : `${hash}  ${f.name}`)
+    ctx.progress(i + 1, null)
+  }
+  clipboard.writeText(lines.join('\r\n'))
+  ctx.setMessage(ctx.files.length === 1 ? `SHA-256 copied: ${lines[0]!.slice(0, 8)}…${lines[0]!.slice(-6)}` : `${ctx.files.length} checksums copied`)
+}
+
+const zipHandler: Handler = async (ctx) => {
+  await ctx.perFile(0, () =>
+    ctx.out.produce(ctx.files[0]!.path, ctx.files.length > 1 ? 'archive' : '', 'zip', (tmp) =>
+      zipPaths(
+        ctx.files.map((f) => f.path),
+        tmp,
+        ctx.signal,
+      ),
+    ),
+  )
+  ctx.progress(ctx.files.length, 1)
+}
+
+const extractHandler: Handler = eachFile(async (ctx, file) => {
+  const { folder, files } = await extractZip(file.path, ctx.signal, undefined, (n, total) => ctx.progress(0, n / Math.max(total, 1)))
+  ctx.out.track(folder)
+  ctx.setMessage(`${files} file${files === 1 ? '' : 's'} extracted`)
+})
+
+const byName = (a: string, b: string) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+
+const folderImagesToPdf: Handler = eachFile(async (ctx, folder) => {
+  const names = (await readdir(folder.path)).sort(byName)
+  const { files } = await inspectPaths(names.map((n) => join(folder.path, n)))
+  const caps = await getCapabilities()
+  const images = files.filter((f) => f.kind === 'image' && caps.imageInput.includes(f.format)).sort((a, b) => byName(a.name, b.name))
+  if (images.length === 0) throw new UserFacingError('This folder has no images.')
+  const data = await imagesToPdf(
+    images.map((f) => f.path),
+    ctx.signal,
+  )
+  await ctx.out.write(folder.path, '', 'pdf', data, ctx.signal)
+  ctx.setMessage(`${images.length} image${images.length === 1 ? '' : 's'} → 1 PDF`)
+})
+
+// ----- documents -----
+
+const documentToPdf: Handler = eachFile(async (ctx, file) => {
+  const caps = await getCapabilities()
+  const engine = officeEngineFor(file.format, caps)
+  if (!engine) throw new UserFacingError('Converting this document needs Microsoft Office or LibreOffice.')
+  await ctx.out.produce(file.path, '', 'pdf', (tmp) => officeToPdf(engine, file.path, tmp, { libreOfficePath: caps.libreoffice.path, signal: ctx.signal }))
+})
+
+const MEDIA_FOLDERS = /^(word|ppt|xl)\/media\/|^Pictures\//i
+
+const documentImages: Handler = eachFile(async (ctx, file) => {
+  const dir = await ctx.out.reserveDir(file.path, `${splitName(file.name).base}-images`)
+  const written = await extractMatching(file.path, (n) => MEDIA_FOLDERS.test(n), dir, ctx.signal)
+  if (written.length === 0) throw new UserFacingError('This document has no embedded images.')
+  ctx.setMessage(`${written.length} image${written.length === 1 ? '' : 's'} extracted`)
+})
+
+const pdfImages: Handler = eachFile(async (ctx, file) => {
+  const dir = await ctx.out.reserveDir(file.path, `${splitName(file.name).base}-images`)
+  const { written, skipped } = await extractPdfImages(await readFile(file.path, { signal: ctx.signal }), dir, ctx.signal)
+  if (written.length === 0)
+    throw new UserFacingError(skipped ? `This PDF's ${skipped} image(s) use an encoding Twirly can't export yet.` : 'This PDF has no embedded images.')
+  ctx.setMessage(`${written.length} image${written.length === 1 ? '' : 's'} extracted${skipped ? ` (${skipped} skipped)` : ''}`)
+})
+
+// ----- text -----
+
+const textToPdfHandler: Handler = eachFile(async (ctx, file) => {
+  const text = await readText(file.path, ctx.signal)
+  await ctx.out.write(file.path, '', 'pdf', await textToPdf(text, file.format, file.name), ctx.signal)
+})
+
+const textToDocxHandler: Handler = eachFile(async (ctx, file) => {
+  const text = await readText(file.path, ctx.signal)
+  await ctx.out.write(file.path, '', 'docx', textToDocx(text, file.format, splitName(file.name).base), ctx.signal)
+})
+
+const textCombine: Handler = async (ctx) => {
+  await ctx.perFile(0, async () => {
+    const parts: string[] = []
+    for (const f of ctx.files) parts.push(`===== ${f.name} =====\n\n${(await readText(f.path, ctx.signal)).replace(/\s+$/, '')}\n`)
+    const first = ctx.files[0]!
+    const ext = ctx.files.every((f) => f.format === first.format) ? first.ext || 'txt' : 'txt'
+    await ctx.out.write(first.path, 'combined', ext, new TextEncoder().encode(parts.join('\n')), ctx.signal)
+  })
+  ctx.progress(ctx.files.length, 1)
+}
+
 const HANDLERS: Record<string, Handler> = {
+  'file.copy-path': copyPath,
+  'file.checksum': checksum,
+  'file.zip': zipHandler,
+  'archive.extract': extractHandler,
+  'folder.images-to-pdf': folderImagesToPdf,
+  'document.to-pdf': documentToPdf,
+  'document.extract-images': documentImages,
+  'pdf.extract-images': pdfImages,
+  'text.to-pdf': textToPdfHandler,
+  'text.to-docx': textToDocxHandler,
+  'text.combine': textCombine,
   'pdf.to-docx': pdfToDocx,
   'pdf.compress': pdfCompress,
   'image.annotate': annotateHandler,

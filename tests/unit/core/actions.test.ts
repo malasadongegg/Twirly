@@ -10,6 +10,7 @@ const caps: Capabilities = {
   ffmpeg: { available: false, encoders: [] },
   ffprobe: { available: false },
   libreoffice: { available: false },
+  office: { word: false, excel: false, powerpoint: false },
 }
 
 const file = (format: string, kind: FileInfo['kind'] = 'image'): FileInfo => ({
@@ -53,20 +54,19 @@ describe('resolveActions', () => {
     expect(ids).not.toContain('image.convert.avif')
   })
 
-  it('explains undecodable images instead of offering broken actions', () => {
+  it('never offers image actions for images this build cannot decode', () => {
     const r = resolveActions([file('heic')], caps)
-    expect(r.actions).toEqual([])
-    expect(r.emptyReason).toMatch(/HEIC/)
+    expect(r.actions.filter((a) => a.id.startsWith('image.'))).toEqual([])
+    expect(r.actions.map((a) => a.id)).toContain('file.copy-path')
   })
 
-  it('explains mixed selections with nothing in common', () => {
+  it('offers only the actions mixed selections share', () => {
     const r = resolveActions([file('png'), file('pdf', 'pdf')], caps)
-    expect(r.actions).toEqual([])
-    expect(r.emptyReason).toBe('No common actions for 1 image, 1 PDF')
+    expect(r.actions.every((a) => a.id.startsWith('file.'))).toBe(true)
   })
 
-  it('rejects unknown files', () => {
-    expect(resolveActions([file('zip', 'unknown')], caps).emptyReason).toBe('Unsupported file type')
+  it('explains selections that nothing can handle', () => {
+    expect(resolveActions([file('png'), file('folder', 'folder')], caps, undefined, ACTIONS.filter((a) => !a.id.startsWith('file.'))).emptyReason).toBe('No common actions for 1 image, 1 folder')
   })
 
   it('honours a user-defined order', () => {
@@ -113,5 +113,36 @@ describe('resolveActions with a customized wheel', () => {
   it('explains when every action is hidden', () => {
     const r = resolveActions([file('png')], caps, { image: ['image.convert.png'] }, ACTIONS, { exclusive: true })
     expect(r.emptyReason).toMatch(/hidden/)
+  })
+})
+
+describe('new kinds: folders, archives, documents, text, anything', () => {
+  const ids = (f: FileInfo[], c: Capabilities = caps) => resolveActions(f, c).actions.map((a) => a.id)
+  it('offers zip, images → PDF and copy path for folders', () => {
+    expect(ids([file('folder', 'folder')])).toEqual(['file.zip', 'folder.images-to-pdf', 'file.copy-path'])
+  })
+  it('offers extract first for ZIPs, but not for 7z/RAR', () => {
+    expect(ids([file('zip', 'archive')])[0]).toBe('archive.extract')
+    expect(ids([file('7z', 'archive')])).not.toContain('archive.extract')
+  })
+  it('gives unknown files generic actions instead of nothing', () => {
+    expect(ids([file('exe', 'unknown')])).toEqual(['file.zip', 'file.copy-path', 'file.checksum'])
+  })
+  it('only offers Office → PDF when Office or LibreOffice can do it', () => {
+    expect(ids([file('docx', 'document')])).not.toContain('document.to-pdf')
+    expect(ids([file('docx', 'document')], { ...caps, office: { word: true, excel: false, powerpoint: false } })[0]).toBe('document.to-pdf')
+    expect(ids([file('xlsx', 'document')], { ...caps, office: { word: true, excel: false, powerpoint: false } })).not.toContain('document.to-pdf')
+    expect(ids([file('pptx', 'document')], { ...caps, libreoffice: { available: true } })).toContain('document.to-pdf')
+  })
+  it('text files get PDF/DOCX, and combine needs two', () => {
+    expect(ids([file('txt', 'text')]).slice(0, 2)).toEqual(['text.to-pdf', 'text.to-docx'])
+    expect(ids([file('txt', 'text')])).not.toContain('text.combine')
+    expect(ids([file('txt', 'text'), file('md', 'text')])).toContain('text.combine')
+  })
+  it('keeps the image wheel focused on image tools', () => {
+    expect(ids([file('png')])).not.toContain('file.copy-path')
+  })
+  it('mixed selections can still zip or copy paths', () => {
+    expect(ids([file('png'), file('pdf', 'pdf')])).toEqual(expect.arrayContaining(['file.zip', 'file.copy-path']))
   })
 })

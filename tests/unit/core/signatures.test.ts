@@ -34,7 +34,7 @@ describe('detectFormat', () => {
   it('uses the extension only for ZIP-based Office files and text', () => {
     const zip = bytes([0x50, 0x4b, 0x03, 0x04])
     expect(detectFormat(zip, 'docx').kind).toBe('document')
-    expect(detectFormat(zip, 'zip').kind).toBe('unknown')
+    expect(detectFormat(zip, 'zip').kind).toBe('archive')
     expect(detectFormat(bytes('hello'), 'txt').kind).toBe('text')
     expect(detectFormat(bytes('he', [0], 'llo'), 'txt').kind).toBe('unknown')
   })

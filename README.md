@@ -19,8 +19,12 @@ https://github.com/user-attachments/assets/REPLACE-WITH-UPLOADED-VIDEO
 - **Drag + Shift anywhere in Explorer** (or a key and apps you choose) → the wheel opens at the cursor. Also works from a drop zone and an "Open with Twirly" right-click entry.
 - **The wheel knows what you're holding**:
   - **Images** (PNG, JPG, WEBP, AVIF, TIFF, BMP, HEIC): convert, compress, crop, resize, rotate, annotate, add background, redact (pixels truly replaced), view/remove metadata and GPS.
-  - **PDFs**: to JPG/PNG/TXT/Word (DOCX), merge, split, rotate, compress, page editor (reorder, rotate, delete, extract, crop).
-  - **Video & audio** (with FFmpeg): convert, compress, extract audio, GIF, trim.
+  - **PDFs**: to JPG/PNG/TXT/Word (DOCX), merge, split, rotate, compress, extract images, page editor (reorder, rotate, delete, extract, crop).
+  - **Word, Excel, PowerPoint**: to PDF (uses your installed Office, or LibreOffice), extract images.
+  - **Text files** (.txt, .md, .csv, .json…): to PDF, to Word, combine several into one.
+  - **Video & audio** (with FFmpeg): convert, compress, extract audio, GIF, trim, **shrink for Messenger (25 MB) / Discord (10 MB)**.
+  - **Folders & ZIPs**: zip anything, extract ZIPs safely, turn a folder of images into one PDF.
+  - **Anything**: copy its path, copy its SHA-256 checksum.
 - **Safe by default**: originals are never overwritten; outputs land next to them (`photo-converted.webp`).
 
 ## Install

@@ -4,7 +4,10 @@ import { useDragHost } from './useDragHost'
 import { WheelStage } from './WheelStage'
 
 /** If a drag-summon gets no OLE dragenter with files this fast, it was not a file drag. */
-const SUMMON_TIMEOUT_MS = 700
+// Safety net only. The wheel normally closes when the mouse button is released without a drop
+// (reported by the helper). It must NOT close quickly: Windows only routes the drag to the wheel
+// after the next mouse move, and users often pause after tapping Shift.
+const SUMMON_TIMEOUT_MS = 30_000
 
 /**
  * The always-on-top wheel window. Shown by main either on drag-summon (files unknown until the
@@ -44,7 +47,8 @@ export function WheelWindowApp() {
   useEffect(
     () =>
       window.twirly.wheel.onDragState(({ buttonDown }) => {
-        if (!buttonDown && phase === 'open' && !real) setTimeout(close, 150)
+        // Give the drop event (which follows the button release) time to arrive first.
+        if (!buttonDown && phase === 'open' && !real) setTimeout(close, 400)
       }),
     [phase, real, close],
   )

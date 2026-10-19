@@ -22,7 +22,7 @@ export function JobToast({ title, progress, onCancel, onDismiss }: JobToastProps
 
   const subtitle =
     status === 'done'
-      ? `${completed} of ${total} saved`
+      ? (progress?.message ?? `${completed} of ${total} saved`)
       : status === 'failed'
         ? (progress?.error?.message ?? 'Failed')
         : status === 'cancelled'
