@@ -49,6 +49,8 @@ export interface ActionDefinition {
   formats?: string[]
   /** Hide for these detected formats, e.g. "convert to PNG" for a PNG. */
   excludeFormats?: string[]
+  /** Hide for these extensions (e.g. "convert to JPG" for .jpg, but not for .jfif). */
+  excludeExts?: string[]
   minFiles: number
   maxFiles: number
   /** Returns a reason string when this machine cannot run the action, else null. */
@@ -74,5 +76,6 @@ export function acceptsFile(action: ActionDefinition, file: FileInfo, caps?: Cap
   if (caps && action.canRead && !action.canRead(file, caps)) return false
   if (action.formats && !action.formats.includes(file.format)) return false
   if (action.excludeFormats?.includes(file.format)) return false
+  if (action.excludeExts?.includes(file.ext.toLowerCase())) return false
   return true
 }

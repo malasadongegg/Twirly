@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises'
 import { dirname } from 'node:path'
 import type { FileInfo } from '@shared/types'
 import { planImageJob } from '@core/actions/image-plan'
@@ -25,7 +26,9 @@ export async function runImageAction(input: ImageJobInput): Promise<string> {
   const plan = planImageJob(input.actionId, file, input.params)
   const source = await loadImage(file.path, signal)
   signal?.throwIfAborted()
-  const rendered = await renderImage(source, plan.ops, plan.format)
+  // Same format, different extension (e.g. .jfif → .jpg): copy the bytes, no re-compression.
+  const lossless = /^image\.convert\./.test(input.actionId) && file.format === plan.format
+  const rendered = lossless ? { data: await readFile(file.path, { signal }) } : await renderImage(source, plan.ops, plan.format)
   signal?.throwIfAborted()
 
   const dir = input.outputDir ?? dirname(file.path)

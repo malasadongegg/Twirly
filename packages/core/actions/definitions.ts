@@ -9,6 +9,7 @@ const needsImageOutput = (format: string) => (caps: Capabilities) =>
   caps.imageOutput.includes(format) ? null : `This build cannot encode ${format.toUpperCase()}`
 
 const IMAGE_KIND: ActionDefinition['kinds'] = ['image']
+const IMAGE_EXTS: Record<string, string[]> = { png: ['png'], jpeg: ['jpg', 'jpeg'], webp: ['webp'], avif: ['avif'], tiff: ['tif', 'tiff'], bmp: ['bmp'] }
 const canDecodeImage: ActionDefinition['canRead'] = (file, caps) => caps.imageInput.includes(file.format)
 
 const imageConversions: ActionDefinition[] = IMAGE_OUTPUTS.map((f) => ({
@@ -18,7 +19,9 @@ const imageConversions: ActionDefinition[] = IMAGE_OUTPUTS.map((f) => ({
   icon: 'file-image',
   kinds: IMAGE_KIND,
   canRead: canDecodeImage,
-  excludeFormats: [f.id],
+  // Hidden only when the file already has this format's usual extension, so e.g. a .jfif (which
+  // is JPEG inside) still offers "JPG". Drag-time provisional files use the format as their ext.
+  excludeExts: IMAGE_EXTS[f.id] ?? [f.id],
   minFiles: 1,
   maxFiles: 500,
   unavailableReason: needsImageOutput(f.id),

@@ -244,3 +244,14 @@ describe('file safety', () => {
     expect(await readdir(dir)).toEqual(['c.png'])
   })
 })
+
+describe('.jfif → .jpg', () => {
+  it('copies the JPEG bytes losslessly into a .jpg', async () => {
+    const jfif = join(root, 'photo.jfif')
+    const bytes = await sharp({ create: { width: 30, height: 20, channels: 3, background: '#123456' } }).jpeg({ quality: 70 }).toBuffer()
+    await writeFile(jfif, bytes)
+    const out = await runImageAction({ actionId: 'image.convert.jpeg', suffix: 'converted', file: await info(jfif), params: { quality: 88 } })
+    expect(out.endsWith('photo-converted.jpg')).toBe(true)
+    expect(Buffer.compare(await readFile(out), bytes)).toBe(0)
+  })
+})

@@ -147,8 +147,9 @@ export function useWheelSession(opts: { onFinished?: () => void } = {}) {
     async (paths: string[], index: number | null) => {
       const s = stateRef.current
       const chosen = index !== null ? s.actions[index] : undefined
-      if (!chosen && paths.length > 0 && !s.real && s.files.every((f) => f.kind === 'unknown')) {
-        // Types were unknown mid-drag: inspect the real files and let the user pick by click.
+      if (!chosen && paths.length > 0 && !s.real && s.phase === 'open') {
+        // Dropped on the centre mid-drag: inspect the real files (names, true types) and let the
+        // user pick from their full action list by click.
         const { files } = await window.twirly.inspect(paths)
         if (files.length > 0) await resolve(files, true, true)
         else close()

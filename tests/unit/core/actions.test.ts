@@ -146,3 +146,11 @@ describe('new kinds: folders, archives, documents, text, anything', () => {
     expect(ids([file('png'), file('pdf', 'pdf')])).toEqual(expect.arrayContaining(['file.zip', 'file.copy-path']))
   })
 })
+
+describe('same format, different extension', () => {
+  it('offers JPG for .jfif (JPEG inside) but not for .jpg', () => {
+    const jfif: FileInfo = { ...file('jpeg'), ext: 'jfif', name: 'a.jfif' }
+    expect(resolveActions([jfif], caps).actions.map((a) => a.id)).toContain('image.convert.jpeg')
+    expect(resolveActions([{ ...file('jpeg'), ext: 'jpg' }], caps).actions.map((a) => a.id)).not.toContain('image.convert.jpeg')
+  })
+})
