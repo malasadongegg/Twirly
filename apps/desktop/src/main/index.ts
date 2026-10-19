@@ -143,7 +143,8 @@ if (!app.requestSingleInstanceLock()) {
     startNativeBridge(
       {
         onSummon: () => {
-          if (!wheelWindow || wheelWindow.isVisible()) return
+          // Always (re)open: a wheel left on screen (e.g. an unnoticed error) must never block new summons.
+          if (!wheelWindow) return
           showWheel(wheelWindow, { paths: [], source: 'drag-summon' }, { focus: false })
           spikeLog('wheel-shown', { bounds: wheelWindow.getBounds() })
         },

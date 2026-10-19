@@ -66,7 +66,13 @@ public static unsafe class Program
         Send("ready", w => w.WriteNumber("version", ProtocolVersion));
 
         // Low-level hooks are delivered through this thread's message loop.
-        while (Native.GetMessageW(out _, 0, 0, 0) > 0) { }
+        // Watchdog: Windows silently removes low-level hooks whose callback is ever too slow.
+        // Every few seconds, if the cursor moved but the mouse hook saw nothing, reinstall both.
+        using var watchdog = new Timer(_ => Native.PostThreadMessageW(_hookThreadId, WM_CHECK_HOOKS, 0, 0), null, 4000, 4000);
+        while (Native.GetMessageW(out var msg, 0, 0, 0) > 0)
+        {
+            if (msg.message == WM_CHECK_HOOKS) CheckHooks();
+        }
 
         Native.UnhookWindowsHookEx(_mouseHook);
         Native.UnhookWindowsHookEx(_keyboardHook);
@@ -74,11 +80,35 @@ public static unsafe class Program
         return 0;
     }
 
+    private const uint WM_CHECK_HOOKS = 0x8000 + 1; // WM_APP + 1
+    private static long _mouseEvents;
+    private static long _mouseEventsAtLastCheck;
+    private static Native.POINT _cursorAtLastCheck;
+
+    private static void CheckHooks()
+    {
+        Native.GetCursorPos(out var pos);
+        var moved = pos.X != _cursorAtLastCheck.X || pos.Y != _cursorAtLastCheck.Y;
+        if (moved && _mouseEvents == _mouseEventsAtLastCheck)
+        {
+            Native.UnhookWindowsHookEx(_mouseHook);
+            Native.UnhookWindowsHookEx(_keyboardHook);
+            _mouseHook = Native.SetWindowsHookExW(Native.WH_MOUSE_LL, &MouseProc, 0, 0);
+            _keyboardHook = Native.SetWindowsHookExW(Native.WH_KEYBOARD_LL, &KeyboardProc, 0, 0);
+            _buttonDown = false;
+            _triggerDown = false;
+            Send("error", w => w.WriteString("message", "input hooks were removed by Windows; reinstalled"));
+        }
+        _cursorAtLastCheck = pos;
+        _mouseEventsAtLastCheck = _mouseEvents;
+    }
+
     [UnmanagedCallersOnly]
     private static nint MouseProc(int nCode, nuint wParam, nint lParam)
     {
         if (nCode >= 0)
         {
+            _mouseEvents++;
             var info = (Native.MSLLHOOKSTRUCT*)lParam;
             switch ((int)wParam)
             {

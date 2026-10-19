@@ -9,23 +9,33 @@ import { hubLabelFor, type WheelSession } from './useWheelSession'
 export const WHEEL_SIZE = 320
 
 /** Auto-dismiss delays after a job ends (failures stay until dismissed). */
-const DISMISS_AFTER = { done: 1400, cancelled: 900 } as const
+const DISMISS_AFTER = { done: 1400, cancelled: 900, failed: 0 } as const
 
 /**
  * Renders the wheel, then morphs into the progress toast once an instant action starts.
  * Positioned by the host: (x, y) is the wheel center in the host's coordinate space.
  */
-export function WheelStage({ session, x, y, interactive }: { session: WheelSession; x: number; y: number; interactive: boolean }) {
+export function WheelStage({ session, x, y, interactive, autoDismissErrors = false }: { session: WheelSession; x: number; y: number; interactive: boolean; autoDismissErrors?: boolean }) {
   const { state, hover, select, close, cancelJob } = session
   const motionPrefs = useMotionPrefs()
   const progress = useJob(state.job?.id ?? null)
 
   useEffect(() => {
     const status = progress?.status
-    if (status !== 'done' && status !== 'cancelled') return
-    const t = setTimeout(close, DISMISS_AFTER[status])
+    // Failures stay until dismissed in the main window; the floating wheel clears them itself
+    // after a while so it never lingers unnoticed over other apps.
+    const delay = status === 'done' || status === 'cancelled' ? DISMISS_AFTER[status] : status === 'failed' && autoDismissErrors ? 7000 : null
+    if (delay === null) return
+    const t = setTimeout(close, delay)
     return () => clearTimeout(t)
-  }, [progress?.status, close])
+  }, [progress?.status, close, autoDismissErrors])
+
+  // Validation errors shown on the floating wheel clear themselves too.
+  useEffect(() => {
+    if (!autoDismissErrors || state.phase !== 'error') return
+    const t = setTimeout(close, 6000)
+    return () => clearTimeout(t)
+  }, [autoDismissErrors, state.phase, close])
 
   const showWheel = state.phase === 'open' || state.phase === 'error'
   const items = state.actions.map((a) => ({ id: a.id, label: a.label, title: a.title, icon: a.icon }))

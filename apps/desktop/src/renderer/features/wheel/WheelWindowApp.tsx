@@ -63,7 +63,7 @@ export function WheelWindowApp() {
 
   return (
     <div className="relative h-full w-full" data-testid="wheel-window">
-      <WheelStage session={session} x={180} y={180} interactive={interactive} />
+      <WheelStage session={session} x={180} y={180} interactive={interactive} autoDismissErrors />
     </div>
   )
 }
