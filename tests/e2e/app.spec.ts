@@ -360,6 +360,37 @@ test('add background: remove the original background and put the subject on a pi
   await editor.close()
 })
 
+test('add background: drag the image to a new spot and shrink it', async () => {
+  const src = join(work, 'white.png')
+  await sharp({ create: { width: 200, height: 200, channels: 3, background: '#ffffff' } }).png().toFile(src)
+  const editor = await openImageEditor(src, 'image.background')
+  await editor.getByRole('radio', { name: 'Custom' }).click()
+  await editor.getByLabel('First color').fill('#000000')
+  await editor.getByLabel('Second color').fill('#000000')
+  await editor.getByLabel('Padding').fill('100')
+  await editor.getByLabel('Size').fill('50')
+  const subject = editor.getByTestId('subject-box')
+  const preview = editor.getByTestId('background-layer')
+  const canvas = (await preview.boundingBox())!
+  const box = (await subject.boundingBox())!
+  // Drag the image's centre to the canvas's top-left corner: it stops at the edge.
+  await editor.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  await editor.mouse.down()
+  await editor.mouse.move(canvas.x + 2, canvas.y + 2, { steps: 10 })
+  await editor.mouse.up()
+  await editor.screenshot({ path: join(shots, 'background-position.png') })
+  await editor.getByTestId('editor-export').click()
+  await expect(editor.getByTestId('editor-status')).toHaveText(/Saved white-background\.png/, { timeout: 15_000 })
+  const out = join(work, 'white-background.png')
+  const meta = await sharp(out).metadata()
+  expect([meta.width, meta.height]).toEqual([400, 400]) // canvas unchanged by size/position
+  expect((await pixel(out, 5, 5)).slice(0, 3)).toEqual([255, 255, 255]) // 100×100 image now in the top-left
+  expect((await pixel(out, 95, 95)).slice(0, 3)).toEqual([255, 255, 255])
+  expect((await pixel(out, 200, 200)).slice(0, 3)).toEqual([0, 0, 0]) // centre: background
+  expect((await pixel(out, 110, 50)).slice(0, 3)).toEqual([0, 0, 0])
+  await editor.close()
+})
+
 test('custom gradient colors and angle', async () => {
   const editor = await openImageEditor(join(work, 'sample.png'), 'image.background')
   await editor.getByRole('radio', { name: 'Custom' }).click()

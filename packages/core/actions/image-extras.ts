@@ -55,6 +55,11 @@ export const backgroundSchema = z.object({
   removeBg: z.boolean().default(false),
   /** Touch-up strokes for the cut-out (only with removeBg). */
   strokes: strokesSchema,
+  /** Where the image sits: its centre as a fraction of the canvas (0.5, 0.5 = centred). */
+  x: z.number().min(0).max(1).default(0.5),
+  y: z.number().min(0).max(1).default(0.5),
+  /** Image size relative to its original size (the canvas keeps its size). */
+  scale: z.number().min(0.05).max(1).default(1),
 })
 export type BackgroundParams = z.output<typeof backgroundSchema>
 
@@ -68,6 +73,30 @@ export function backgroundCanvas(w: number, h: number, p: Pick<BackgroundParams,
     else height = Math.round(width / r)
   }
   return { width, height }
+}
+
+/**
+ * Pixel box of the (scaled) image on a W×H canvas, kept fully inside. Shared by the editor preview
+ * and the export so what you place is what you get.
+ */
+export function subjectPlacement(
+  W: number,
+  H: number,
+  w: number,
+  h: number,
+  p: Pick<BackgroundParams, 'x' | 'y' | 'scale'>,
+): { left: number; top: number; width: number; height: number } {
+  const width = Math.max(1, Math.round(w * p.scale))
+  const height = Math.max(1, Math.round(h * p.scale))
+  const clamp = (v: number, max: number) => Math.round(Math.min(Math.max(v, 0), Math.max(0, max)))
+  return { left: clamp(p.x * W - width / 2, W - width), top: clamp(p.y * H - height / 2, H - height), width, height }
+}
+
+/** The centre (as canvas fractions) that keeps an image of the given size fully inside. */
+export function clampCenter(W: number, H: number, width: number, height: number, x: number, y: number): { x: number; y: number } {
+  const cx = Math.min(Math.max(x * W, width / 2), Math.max(width / 2, W - width / 2))
+  const cy = Math.min(Math.max(y * H, height / 2), Math.max(height / 2, H - height / 2))
+  return { x: cx / W, y: cy / H }
 }
 
 export const regionSchema = z.object({

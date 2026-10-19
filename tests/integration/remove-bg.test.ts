@@ -104,6 +104,17 @@ describe('custom backgrounds (no model needed)', () => {
     await expect(renderWithBackground(img, backgroundSchema.parse({ fill: 'image' }))).rejects.toThrow(/Choose a picture/)
   })
 
+  it('places the image where it was dragged, at the chosen size (canvas keeps its size)', async () => {
+    const img = await sharp({ create: { width: 100, height: 100, channels: 3, background: '#ffffff' } }).png().toBuffer()
+    const p = backgroundSchema.parse({ from: '#ff0000', to: '#ff0000', padding: 50, shadow: 0, corners: 0, x: 0.2, y: 0.8, scale: 0.5 })
+    const out = await renderWithBackground(img, p)
+    expect([(await sharp(out).metadata()).width, (await sharp(out).metadata()).height]).toEqual([200, 200])
+    // 50×50 image centred at (40, 160) → box 15..65 × 135..185.
+    expect((await alphaAt(out, 40, 160)).g).toBe(255) // white image here
+    expect((await alphaAt(out, 100, 100)).g).toBe(0) // centre is background now
+    expect((await alphaAt(out, 70, 160)).g).toBe(0) // just right of the box
+  })
+
   it('a custom two-color gradient runs along the chosen angle', async () => {
     const img = await sharp({ create: { width: 20, height: 20, channels: 3, background: '#fff' } }).png().toBuffer()
     // 0° = left → right: red on the left edge, blue on the right.

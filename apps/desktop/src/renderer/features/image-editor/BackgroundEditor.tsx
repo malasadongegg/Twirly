@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FileInfo } from '@shared/types'
-import { BACKGROUND_PRESETS, backgroundCanvas, type BackgroundParams, type BgRatio } from '@core/actions/image-extras'
+import { BACKGROUND_PRESETS, backgroundCanvas, clampCenter, subjectPlacement, type BackgroundParams, type BgRatio } from '@core/actions/image-extras'
 import { WindowFrame } from '../../components/FloatingWindow/WindowFrame'
 import { Button, FieldRow, Segmented, Slider } from '../../components/ui/controls'
 import { EditorFooter } from './EditorFooter'
@@ -47,6 +47,9 @@ export function BackgroundEditor({ actionId, file }: { actionId: string; file: F
     blur: 0,
     removeBg: false,
     strokes: [],
+    x: 0.5,
+    y: 0.5,
+    scale: 1,
   })
   const [initialized, setInitialized] = useState(false)
   const cutout = useCutoutMask(file.path, PREVIEW_MAX, p.removeBg)
@@ -70,6 +73,13 @@ export function BackgroundEditor({ actionId, file }: { actionId: string; file: F
   const brushSize = brush ?? Math.max(2, Math.round(maxDim * 0.04))
   const shadowCss = p.shadow ? `0 ${(p.shadow / 3) * scale}px ${p.shadow * scale}px rgb(0 0 0 / 0.45)` : 'none'
   const needsPicture = p.fill === 'image' && !p.image
+  // Where the image sits on the canvas (canvas pixels), the same maths the export uses.
+  const box = preview ? subjectPlacement(full.width, full.height, preview.width, preview.height, p) : { left: 0, top: 0, width: 1, height: 1 }
+  const drag = useRef<{ px: number; py: number; x: number; y: number } | null>(null)
+  const [dragging, setDragging] = useState(false)
+  const canDrag = !(cut && tool !== 'off')
+  const setScale = (scale: number) =>
+    setP((s) => ({ ...s, scale, ...clampCenter(full.width, full.height, (preview?.width ?? 1) * scale, (preview?.height ?? 1) * scale, s.x, s.y) }))
 
   const choosePicture = async () => {
     const [path] = await window.twirly.pickFiles()
@@ -110,35 +120,59 @@ export function BackgroundEditor({ actionId, file }: { actionId: string; file: F
                   : { background: `linear-gradient(${p.angle + 90}deg, ${p.from}, ${p.to})` }
               }
             />
-            {cut ? (
-              <div className="relative">
+            <div
+              className="absolute"
+              data-testid="subject-box"
+              title={canDrag ? 'Drag to move' : undefined}
+              style={{ left: box.left * scale, top: box.top * scale, cursor: canDrag ? (dragging ? 'grabbing' : 'grab') : undefined, touchAction: 'none' }}
+              onPointerDown={(e) => {
+                if (!canDrag || e.button !== 0) return
+                e.currentTarget.setPointerCapture(e.pointerId)
+                drag.current = { px: e.clientX, py: e.clientY, x: (box.left + box.width / 2) / full.width, y: (box.top + box.height / 2) / full.height }
+                setDragging(true)
+              }}
+              onPointerMove={(e) => {
+                const d = drag.current
+                if (!d) return
+                const x = d.x + (e.clientX - d.px) / scale / full.width
+                const y = d.y + (e.clientY - d.py) / scale / full.height
+                set(clampCenter(full.width, full.height, box.width, box.height, x, y))
+              }}
+              onPointerUp={() => {
+                drag.current = null
+                setDragging(false)
+              }}
+              onDoubleClick={() => canDrag && set({ x: 0.5, y: 0.5 })}
+            >
+              {cut ? (
                 <MaskedImage
                   imageUrl={preview.dataUrl}
                   maskUrl={cutout.url!}
                   width={preview.width}
                   height={preview.height}
-                  scale={scale}
+                  scale={scale * p.scale}
                   strokes={strokes}
                   tool={tool}
                   brush={brushSize}
                   onStroke={add}
                   style={p.shadow ? { filter: `drop-shadow(${shadowCss})` } : undefined}
                 />
-              </div>
-            ) : (
-              <img
-                src={preview.dataUrl}
-                alt=""
-                className="relative"
-                style={{
-                  width: preview.width * scale,
-                  height: preview.height * scale,
-                  opacity: p.removeBg ? 0.45 : 1,
-                  borderRadius: Math.min(p.corners, Math.min(preview.width, preview.height) / 2) * scale,
-                  boxShadow: shadowCss,
-                }}
-              />
-            )}
+              ) : (
+                <img
+                  src={preview.dataUrl}
+                  alt=""
+                  draggable={false}
+                  style={{
+                    display: 'block',
+                    width: box.width * scale,
+                    height: box.height * scale,
+                    opacity: p.removeBg ? 0.45 : 1,
+                    borderRadius: Math.min(p.corners, Math.min(preview.width, preview.height) / 2) * scale * p.scale,
+                    boxShadow: shadowCss,
+                  }}
+                />
+              )}
+            </div>
             {p.removeBg && cutout.busy && (
               <div className="absolute inset-x-0 bottom-3 text-center">
                 <span className="rounded-md bg-bg/85 px-2.5 py-1 text-xs text-fg">Finding the subject…</span>
@@ -255,6 +289,15 @@ export function BackgroundEditor({ actionId, file }: { actionId: string; file: F
           </>
         )}
         <Slider label="Padding" value={p.padding} min={0} max={Math.round(maxDim * 0.5)} onChange={(padding) => set({ padding })} suffix=" px" />
+        <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <Slider label="Size" value={Math.round(p.scale * 100)} min={10} max={100} onChange={(v) => setScale(v / 100)} suffix="%" />
+          </div>
+          <Button className="h-6 shrink-0 px-2 text-[11px]" disabled={p.x === 0.5 && p.y === 0.5} onClick={() => set({ x: 0.5, y: 0.5 })} title="Center the image (or double-click it)">
+            Center
+          </Button>
+        </div>
+        <p className="text-[11px] text-fg-3">Drag the image in the preview to move it.</p>
         {!p.removeBg && <Slider label="Corners" value={p.corners} min={0} max={Math.round(maxDim * 0.25)} onChange={(corners) => set({ corners })} suffix=" px" />}
         <Slider label="Shadow" value={p.shadow} min={0} max={Math.max(1, Math.round(maxDim * 0.1))} onChange={(shadow) => set({ shadow })} suffix=" px" />
         <FieldRow label="Ratio">

@@ -1,5 +1,5 @@
 import sharp, { type OverlayOptions } from 'sharp'
-import { backgroundCanvas, type BackgroundParams, type RedactParams } from '@core/actions/image-extras'
+import { backgroundCanvas, subjectPlacement, type BackgroundParams, type RedactParams } from '@core/actions/image-extras'
 import { UserFacingError } from '../errors'
 import { cutoutRaw } from './remove-bg'
 import { annotationsSvg, type Shape } from '@core/image/annotate'
@@ -31,10 +31,17 @@ export async function renderWithBackground(input: Buffer, p: BackgroundParams, o
     }
   }
 
+  // The canvas is sized from the original image; the image itself may be shrunk and moved.
   const { width: W, height: H } = backgroundCanvas(w, h, p)
   if (W * H > 268_402_689) throw new UserFacingError('The result would be too large. Reduce the padding.')
-  const x = Math.round((W - w) / 2)
-  const y = Math.round((H - h) / 2)
+  const box = subjectPlacement(W, H, w, h, p)
+  if (box.width !== w || box.height !== h) {
+    image = await sharp(image).resize(box.width, box.height, { fit: 'fill', kernel: 'lanczos3' }).png().toBuffer()
+    w = box.width
+    h = box.height
+  }
+  const x = box.left
+  const y = box.top
 
   let background: Buffer
   if (p.fill === 'image') {

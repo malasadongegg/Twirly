@@ -120,7 +120,8 @@ export function createEditorWindow(ctx: EditorContext): BrowserWindow {
   const cursor = screen.getCursorScreenPoint()
   const { workArea } = screen.getDisplayNearestPoint(cursor)
   const width = 520
-  const height = 680
+  // Tall enough for a useful preview above the controls, but never taller than the screen.
+  const height = Math.min(840, workArea.height - 24)
   const x = Math.min(Math.max(cursor.x - width / 2, workArea.x + 12), workArea.x + workArea.width - width - 12)
   const y = Math.min(Math.max(cursor.y - height / 2, workArea.y + 12), workArea.y + workArea.height - height - 12)
   const win = new BrowserWindow({
