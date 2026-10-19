@@ -10,9 +10,6 @@ program. Everything runs locally: your files never leave your PC.
 > It works and is tested, but expect rough edges and changes before 1.0. The installer is not
 > code-signed yet, so Windows SmartScreen will warn on first run (More info → Run anyway).
 
-https://github.com/user-attachments/assets/REPLACE-WITH-UPLOADED-VIDEO
-
-*(Trailer: [`brag-output-2026-10-19-114134/brag.mp4`](brag-output-2026-10-19-114134/brag.mp4))*
 
 ## What it does
 
