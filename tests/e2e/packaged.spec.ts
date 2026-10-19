@@ -48,7 +48,8 @@ async function runViaWheel(file: string, segment: string) {
   await home.getByRole('button', { name: /Browse files/ }).click()
   await home.getByTestId(`wheel-segment-${segment}`).click()
   await expect(home.getByTestId('job-toast')).toHaveAttribute('data-status', 'done', { timeout: 30_000 })
-  await expect(home.getByTestId('job-toast')).toBeHidden({ timeout: 5000 })
+  // Up to 6 s when the toast offers a follow-up (Touch up after Remove background).
+  await expect(home.getByTestId('job-toast')).toBeHidden({ timeout: 9000 })
 }
 
 test('packaged: is packaged, helper runs from resources, sharp works from asar.unpacked', async () => {
