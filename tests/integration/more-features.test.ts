@@ -206,7 +206,8 @@ describe('fit to size planning', () => {
   it('budgets bitrate from size and length and steps down resolution', () => {
     const p = planFitSize(info, 25 * 1024 * 1024, 200e6)
     expect(p.videoKbps).toBe(Math.floor((25 * 1024 * 1024 * 8 * 0.94) / 60 / 1000 - 96))
-    expect(p.height).toBe(1080 > 720 && p.videoKbps < 2000 ? (p.videoKbps < 900 ? 480 : 720) : undefined)
+    // 60 s into 25 MB ≈ 3.3 Mbps: enough for 1080p, so the source size is kept.
+    expect(p.height).toBe(p.videoKbps < 2000 ? (p.videoKbps < 900 ? 480 : 720) : undefined)
     expect(() => planFitSize(info, 25 * 1024 * 1024, 10e6)).toThrow(/Already under/)
     expect(() => planFitSize({ ...info, durationSec: 7200 }, 10 * 1024 * 1024, 2e9)).toThrow(/too long/)
   })

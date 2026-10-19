@@ -47,7 +47,7 @@ async function run(actionId: string, paths: string[], params: Record<string, unk
 /** Run an action, check it finished and its outputs pass `verify`; record the result. */
 async function check(actionId: string, paths: string[], verify: (p: JobProgress) => Promise<string | void> | string | void, params: Record<string, unknown> = {}) {
   let ok = false
-  let note = ''
+  let note: string
   try {
     const p = await run(actionId, paths, params)
     if (p.status !== 'done') throw new Error(`${p.status}: ${p.error?.message ?? ''} ${p.error?.detail ?? ''}`)
