@@ -162,7 +162,12 @@ export function useWheelSession(opts: { onFinished?: () => void } = {}) {
       const caps = await getCaps()
       const valid = resolveActions(files, caps, { [files[0]?.kind ?? 'unknown']: [chosen.id] }).actions
       if (rejected.length > 0 || !valid.some((a) => a.id === chosen.id)) {
-        const reason = rejected[0]?.reason ?? `${chosen.title} cannot process ${files.length === 1 ? files[0]!.name : 'these files'}`
+        const broken = files.find((f) => f.kind === 'unknown' && (f.size === 0 || f.format === 'empty' || KNOWN_EXTS.includes(f.ext)))
+        const reason =
+          rejected[0]?.reason ??
+          (broken
+            ? `${broken.name} is ${broken.size === 0 || broken.format === 'empty' ? 'empty' : 'damaged or not really a ' + broken.ext.toUpperCase()} (no ${broken.ext.toUpperCase() === 'PDF' ? 'document' : 'image'} inside)`
+            : `${chosen.title} cannot process ${files.length === 1 ? files[0]!.name : 'these files'}`)
         setState((st) => ({ ...st, files, real: true, phase: 'error', error: reason }))
         return
       }
