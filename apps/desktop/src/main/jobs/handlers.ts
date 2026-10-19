@@ -16,7 +16,7 @@ import { withPdf, pdfWorker } from '../pdf/render-client'
 import { mediaHandlers } from './media-handlers'
 import { clipboard } from 'electron'
 import { readdir } from 'node:fs/promises'
-import { join } from 'node:path'
+import { isAbsolute, join } from 'node:path'
 import { splitName } from '@core/naming/output-name'
 import { officeEngineFor } from '@core/actions/more-actions'
 import { ensureLibreOffice } from '../libreoffice'
@@ -31,6 +31,7 @@ import { backgroundSchema, redactSchema } from '@core/actions/image-extras'
 import { renderAnnotated, renderRedacted, renderWithBackground } from '@processing/images/extras'
 import { annotateSchema } from '@core/image/annotate'
 import { loadImage } from '@processing/images/process'
+import { removeBackground } from '@processing/images/remove-bg'
 
 export interface JobContext {
   action: ActionDefinition
@@ -148,8 +149,21 @@ const imagesToPdfHandler: Handler = async (ctx) => {
 
 const backgroundHandler: Handler = eachFile(async (ctx, file) => {
   const params = backgroundSchema.parse(ctx.params)
-  const data = await renderWithBackground(await loadImage(file.path, ctx.signal), params)
+  let backgroundImage: Buffer | undefined
+  if (params.fill === 'image') {
+    if (!params.image || !isAbsolute(params.image)) throw new UserFacingError('Choose a picture for the background.')
+    backgroundImage = await loadImage(params.image, ctx.signal)
+  }
+  if (params.removeBg) ctx.setMessage('Removing background…')
+  const data = await renderWithBackground(await loadImage(file.path, ctx.signal), params, { backgroundImage, signal: ctx.signal })
+  ctx.setMessage('')
   await ctx.out.write(file.path, ctx.action.suffix, 'png', data, ctx.signal)
+})
+
+const removeBgHandler: Handler = eachFile(async (ctx, file) => {
+  const { png, kept } = await removeBackground(await loadImage(file.path, ctx.signal), ctx.signal)
+  if (kept < 0.002) throw new UserFacingError(`No clear subject was found in ${file.name}.`)
+  await ctx.out.write(file.path, ctx.action.suffix, 'png', png, ctx.signal)
 })
 
 const redactHandler: Handler = eachFile(async (ctx, file) => {
@@ -315,6 +329,7 @@ const HANDLERS: Record<string, Handler> = {
   'pdf.compress': pdfCompress,
   'image.annotate': annotateHandler,
   'image.background': backgroundHandler,
+  'image.remove-bg': removeBgHandler,
   'image.redact': redactHandler,
   'pdf.to-png': pdfToImages('png'),
   'pdf.to-jpeg': pdfToImages('jpeg'),

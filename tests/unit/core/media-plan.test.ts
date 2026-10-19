@@ -77,6 +77,7 @@ describe('media actions in the wheel', () => {
     ffprobe: { available: true, path: 'ffprobe' },
     libreoffice: { available: false },
     office: { word: false, excel: false, powerpoint: false },
+    removeBg: true,
   })
   const vid: FileInfo = { path: 'C:\\v.mov', name: 'v.mov', ext: 'mov', size: 1, kind: 'video', format: 'mov', extensionMismatch: false }
 

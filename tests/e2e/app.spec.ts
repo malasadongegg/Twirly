@@ -317,6 +317,70 @@ test('add background editor exports a padded PNG', async () => {
   await editor.close()
 })
 
+/** A product-style shot: a shaded orange ball on a light backdrop (IS-Net finds it reliably). */
+async function ballPhoto(path: string) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360">
+    <defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e9edf2"/><stop offset="1" stop-color="#c9d0d8"/></linearGradient>
+    <radialGradient id="ball" cx="0.38" cy="0.35" r="0.7"><stop offset="0" stop-color="#ffd08a"/><stop offset="0.45" stop-color="#f97316"/><stop offset="1" stop-color="#7c2d12"/></radialGradient></defs>
+    <rect width="480" height="360" fill="url(#bg)"/><circle cx="240" cy="180" r="105" fill="url(#ball)"/></svg>`
+  await sharp(Buffer.from(svg)).png().toFile(path)
+}
+
+const pixel = async (path: string, x: number, y: number) => {
+  const { data, info } = await sharp(path).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
+  const i = (y * info.width + x) * 4
+  return [data[i]!, data[i + 1]!, data[i + 2]!, data[i + 3]!]
+}
+
+test('add background: remove the original background and put the subject on a picture', async () => {
+  const src = join(work, 'ball.png')
+  const picture = join(work, 'purple.png')
+  await ballPhoto(src)
+  await sharp({ create: { width: 60, height: 40, channels: 3, background: '#7c3aed' } }).png().toFile(picture)
+  const editor = await openImageEditor(src, 'image.background')
+  await editor.getByRole('radio', { name: 'Remove' }).click()
+  await expect(editor.getByTestId('subject')).toHaveAttribute('src', /^data:image\/png/, { timeout: 30_000 })
+  await stubFileDialog([picture])
+  await editor.getByRole('radio', { name: 'Picture' }).click()
+  await expect(editor.getByText('purple.png')).toBeVisible()
+  await expect(editor.getByRole('radio', { name: 'Picture' })).toHaveAttribute('aria-checked', 'true')
+  await expect(editor.getByRole('radio', { name: 'Colors' })).toHaveAttribute('aria-checked', 'false')
+  await expect(editor.getByTestId('background-layer')).toHaveAttribute('style', /url\(/)
+  await editor.screenshot({ path: join(shots, 'background-remove-picture.png') })
+  await editor.getByTestId('editor-export').click()
+  await expect(editor.getByTestId('editor-status')).toHaveText(/Saved ball-background\.png/, { timeout: 30_000 })
+  const out = join(work, 'ball-background.png')
+  const meta = await sharp(out).metadata()
+  // 480×360 + 8% padding (38 px) on each side.
+  expect([meta.width, meta.height]).toEqual([556, 436])
+  expect((await pixel(out, 60, 60)).slice(0, 3)).toEqual([0x7c, 0x3a, 0xed]) // old backdrop → the picture
+  const centre = await pixel(out, 278, 218)
+  expect(centre[0]).toBeGreaterThan(200) // the orange ball stayed
+  await editor.close()
+})
+
+test('custom gradient colors and angle', async () => {
+  const editor = await openImageEditor(join(work, 'sample.png'), 'image.background')
+  await editor.getByRole('radio', { name: 'Custom' }).click()
+  await editor.getByLabel('First color').fill('#ff0000')
+  await editor.getByLabel('Second color').fill('#0000ff')
+  await expect(editor.getByTestId('background-layer')).toHaveAttribute('style', /rgb\(255, 0, 0\).*rgb\(0, 0, 255\)/)
+  await editor.close()
+})
+
+test('remove background from the wheel saves a transparent PNG', async () => {
+  const src = join(work, 'ball.png')
+  await stubFileDialog([src])
+  await home.getByRole('button', { name: /Browse files/ }).click()
+  await home.getByTestId('wheel-segment-image.remove-bg').click()
+  await expect(home.getByTestId('job-toast')).toHaveAttribute('data-status', 'done', { timeout: 30_000 })
+  const out = join(work, 'ball-no-bg.png')
+  expect((await sharp(out).metadata()).hasAlpha).toBe(true)
+  expect((await pixel(out, 5, 5))[3]).toBeLessThan(20)
+  expect((await pixel(out, 240, 180))[3]).toBeGreaterThan(220)
+  await expect(home.getByTestId('job-toast')).toBeHidden({ timeout: 5000 })
+})
+
 test('redact editor: drawn box is burned in and metadata removed', async () => {
   const src = join(work, 'secret.jpg')
   await sharp({ create: { width: 400, height: 300, channels: 3, background: '#ffffff' } })
@@ -350,7 +414,10 @@ test('metadata view shows camera fields and strips them', async () => {
     .withExif({ IFD0: { Make: 'TwirlyCam', Model: 'Z9' } })
     .jpeg()
     .toFile(src)
+  // Metadata sits after Remove background, past the 8 default segments; put it on the wheel.
+  await home.evaluate(() => window.twirly.settings.set({ wheelOrder: { image: ['image.metadata', 'image.crop'] } }))
   const editor = await openImageEditor(src, 'image.metadata')
+  await home.evaluate(() => window.twirly.settings.set({ wheelOrder: {} }))
   await expect(editor.getByTestId('metadata-view')).toContainText('TwirlyCam')
   await expect(editor.getByTestId('metadata-view')).toContainText('Z9')
   await editor.screenshot({ path: join(shots, 'metadata-view.png') })

@@ -16,7 +16,7 @@ export default defineConfig({
       outDir: 'out/main',
       rollupOptions: {
         input: resolve(__dirname, 'apps/desktop/src/main/index.ts'),
-        external: ['sharp'],
+        external: ['sharp', 'onnxruntime-node'],
       },
     },
   },

@@ -30,4 +30,5 @@ export const IPC = {
   pdfBytes: 'pdf:bytes',
   mediaOpen: 'media:open',
   imageMetadata: 'image:metadata',
+  removeBgPreview: 'image:remove-bg-preview',
 } as const

@@ -61,6 +61,8 @@ export interface TwirlyApi {
   openEditor(req: OpenEditorRequest): Promise<void>
   editorContext(): Promise<EditorContext>
   imagePreview(path: string, maxSize: number): Promise<ImagePreview>
+  /** The subject cut out (transparent PNG data URL) at preview size. */
+  removeBgPreview(path: string, maxSize: number): Promise<string>
   showInFolder(path: string): Promise<void>
   pickFiles(): Promise<string[]>
   pickDirectory(): Promise<string | null>

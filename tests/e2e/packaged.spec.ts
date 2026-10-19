@@ -89,3 +89,17 @@ test('packaged: bundled FFmpeg is used with no FFmpeg on PATH (video, HEIC)', as
   await runViaWheel(mov, 'video.to-mp4')
   expect(existsSync(join(work, 'clip-converted.mp4'))).toBe(true)
 })
+
+test('packaged: background removal runs (ONNX Runtime from asar.unpacked, bundled model)', async () => {
+  const diag = await home.evaluate(() => window.twirly.diagnostics())
+  expect(diag.capabilities.removeBg).toBe(true)
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="240"><rect width="320" height="240" fill="#e5e9ee"/>
+    <defs><radialGradient id="b" cx="0.38" cy="0.35" r="0.7"><stop offset="0" stop-color="#ffd08a"/><stop offset="0.45" stop-color="#f97316"/><stop offset="1" stop-color="#7c2d12"/></radialGradient></defs>
+    <circle cx="160" cy="120" r="70" fill="url(#b)"/></svg>`
+  const src = join(work, 'ball.png')
+  await sharp(Buffer.from(svg)).png().toFile(src)
+  await runViaWheel(src, 'image.remove-bg')
+  const { data, info } = await sharp(join(work, 'ball-no-bg.png')).ensureAlpha().raw().toBuffer({ resolveWithObject: true })
+  expect(data[3]).toBeLessThan(20) // corner: transparent
+  expect(data[(120 * info.width + 160) * 4 + 3]).toBeGreaterThan(220) // centre: the ball
+})

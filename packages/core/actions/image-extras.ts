@@ -32,6 +32,13 @@ export const backgroundSchema = z.object({
   /** Shadow blur radius, in source pixels (0 = none). */
   shadow: z.number().int().min(0).max(400).default(32),
   ratio: z.enum(['auto', '1:1', '16:9', '4:5']).default('auto'),
+  /** Gradient/solid colors, or a picture (absolute path) scaled to cover the canvas. */
+  fill: z.enum(['gradient', 'image']).default('gradient'),
+  image: z.string().min(1).max(32_767).optional(),
+  /** Blur for a picture background, in canvas pixels. */
+  blur: z.number().min(0).max(200).default(0),
+  /** Cut the subject out first (IS-Net), so the new background shows around it. */
+  removeBg: z.boolean().default(false),
 })
 export type BackgroundParams = z.output<typeof backgroundSchema>
 

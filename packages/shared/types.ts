@@ -34,6 +34,8 @@ export interface Capabilities {
   libreoffice: { available: boolean; path?: string }
   /** Microsoft Office apps registered for automation (used for Office → PDF). */
   office: { word: boolean; excel: boolean; powerpoint: boolean }
+  /** The bundled background-removal model is present. */
+  removeBg: boolean
 }
 
 export type JobStatus = 'queued' | 'running' | 'done' | 'failed' | 'cancelled'

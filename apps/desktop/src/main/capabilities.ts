@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { promisify } from 'node:util'
 import type { Capabilities } from '@shared/types'
 import { configureHeicDecoder, detectImageInputs, detectImageOutputs } from '@processing/images/process'
+import { configureRemoveBgModel } from '@processing/images/remove-bg'
 
 const run = promisify(execFile)
 
@@ -36,14 +37,16 @@ async function detectOffice(): Promise<Capabilities['office']> {
 }
 
 /**
- * FFmpeg shipped with the app (resources/ffmpeg in the installer, vendor/ffmpeg in dev), so video,
- * audio and HEIC work out of the box. Falls back to an FFmpeg on PATH.
+ * A file shipped with the app: resources/<dir> in the installer, vendor/<dir> in dev.
+ * process.resourcesPath is only set by Electron; the dev bundle lives in <repo>/out/main.
  */
-function bundledFfmpeg(): string | null {
-  // process.resourcesPath is only set by Electron; the dev bundle lives in <repo>/out/main.
-  const candidates = [process.resourcesPath && join(process.resourcesPath, 'ffmpeg', 'ffmpeg.exe'), join(__dirname, '..', '..', 'vendor', 'ffmpeg', 'ffmpeg.exe')]
+function bundled(dir: string, file: string): string | null {
+  const candidates = [process.resourcesPath && join(process.resourcesPath, dir, file), join(__dirname, '..', '..', 'vendor', dir, file)]
   return candidates.find((p): p is string => !!p && existsSync(p)) ?? null
 }
+
+/** Bundled FFmpeg, so video, audio and HEIC work out of the box. Falls back to an FFmpeg on PATH. */
+const bundledFfmpeg = () => bundled('ffmpeg', 'ffmpeg.exe')
 
 let cached: Promise<Capabilities> | null = null
 
@@ -62,6 +65,8 @@ export function getCapabilities(opts: { ffmpegPath?: string; refresh?: boolean }
     const decoders = ffmpeg.available ? ((await probe(ffmpegCmd, ['-hide_banner', '-decoders'])) ?? '') : ''
     const heic = /^\s*V\S*\s+hevc\s/m.test(decoders)
     configureHeicDecoder(heic ? ffmpegCmd : null)
+    const removeBgModel = bundled('models', 'isnet-general-use.onnx')
+    configureRemoveBgModel(removeBgModel)
     // E2E: pretend this PC has neither Office nor LibreOffice (exercises the install offer).
     const noOffice = process.env.TWIRLY_TEST_NO_OFFICE === '1'
     return {
@@ -71,6 +76,7 @@ export function getCapabilities(opts: { ffmpegPath?: string; refresh?: boolean }
       ffprobe: { available: ffprobeOut !== null, path: ffprobeOut !== null ? ffprobeCmd : undefined },
       libreoffice: noOffice ? { available: false } : { available: soffice !== null || existsSync(LIBREOFFICE_DEFAULT), path: soffice !== null ? 'soffice' : existsSync(LIBREOFFICE_DEFAULT) ? LIBREOFFICE_DEFAULT : undefined },
       office: noOffice ? { word: false, excel: false, powerpoint: false } : await detectOffice(),
+      removeBg: removeBgModel !== null,
     }
   })()
   return cached

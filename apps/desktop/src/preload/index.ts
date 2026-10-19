@@ -19,6 +19,7 @@ const api: TwirlyApi = {
   openEditor: (req) => ipcRenderer.invoke(IPC.openEditor, req),
   editorContext: () => ipcRenderer.invoke(IPC.editorContext),
   imagePreview: (path, maxSize) => ipcRenderer.invoke(IPC.imagePreview, { path, maxSize }),
+  removeBgPreview: (path, maxSize) => ipcRenderer.invoke(IPC.removeBgPreview, { path, maxSize }),
   showInFolder: (path) => ipcRenderer.invoke(IPC.showInFolder, path),
   pickFiles: () => ipcRenderer.invoke(IPC.pickFiles),
   pickDirectory: () => ipcRenderer.invoke(IPC.pickDirectory),

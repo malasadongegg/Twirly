@@ -33,6 +33,7 @@ export type ActionIcon =
   | 'fingerprint'
   | 'folder-open'
   | 'send'
+  | 'wand-sparkles'
 
 export type ActionMode = 'instant' | 'editor'
 export type EditorKind = 'image' | 'pdf' | 'media' | 'background' | 'redact' | 'metadata' | 'annotate'

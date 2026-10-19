@@ -19,6 +19,7 @@ import {
   Fingerprint,
   FolderOpen,
   Send,
+  WandSparkles,
   Images,
   Info,
   LayoutGrid,
@@ -66,4 +67,5 @@ export const ACTION_ICONS: Record<ActionIcon, LucideIcon> = {
   fingerprint: Fingerprint,
   'folder-open': FolderOpen,
   send: Send,
+  'wand-sparkles': WandSparkles,
 }

@@ -10,6 +10,7 @@ import { readExif } from '@core/image/exif'
 import { ACTIONS_BY_ID } from '@core/actions/definitions'
 import { inspectPaths } from '@processing/fs/inspect'
 import { loadImage, previewDataUrl, readImageMeta } from '@processing/images/process'
+import { removeBackground } from '@processing/images/remove-bg'
 import { toUserFacing } from '@processing/errors'
 import { getCapabilities } from './capabilities'
 import { ensureLibreOffice } from './libreoffice'
@@ -83,6 +84,29 @@ export function registerIpc({ runner, onWheelDismiss, onMainClose }: IpcDeps): v
     const input = await loadImage(path)
     const [meta, dataUrl] = await Promise.all([readImageMeta(input), previewDataUrl(input, maxSize)])
     return { dataUrl, ...meta }
+  })
+
+  // Cut-out previews are cached per file: the editor asks again whenever the toggle flips.
+  const cutouts = new Map<string, Promise<string>>()
+  handle(IPC.removeBgPreview, imagePreviewSchema, ({ path, maxSize }) => {
+    absolutePaths([path])
+    const key = `${path}|${maxSize}`
+    let hit = cutouts.get(key)
+    if (!hit) {
+      hit = (async () => {
+        const small = await sharp(await loadImage(path), { animated: false })
+          .autoOrient()
+          .resize(maxSize, maxSize, { fit: 'inside', withoutEnlargement: true })
+          .png()
+          .toBuffer()
+        const { png } = await removeBackground(small)
+        return `data:image/png;base64,${png.toString('base64')}`
+      })()
+      hit.catch(() => cutouts.delete(key))
+      if (cutouts.size > 8) cutouts.delete(cutouts.keys().next().value!)
+      cutouts.set(key, hit)
+    }
+    return hit
   })
 
   handle(IPC.showInFolder, z.string().min(1), (path) => {

@@ -12,6 +12,7 @@ const caps: Capabilities = {
   ffprobe: { available: false },
   libreoffice: { available: false },
   office: { word: false, excel: false, powerpoint: false },
+  removeBg: true,
 }
 
 const file = (format: string, kind: FileInfo['kind'] = 'image'): FileInfo => ({
