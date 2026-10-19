@@ -21,3 +21,9 @@ brag-output/work/composition/dist/
 brag-output/work/audio.wav
 # Third-party reference clip (a social media repost): keep it out of the public repo.
 references/*.mp4
+
+# Full brag (Hyperframes): Microsoft fonts and render caches stay local.
+brag-output-*/composition/assets/fonts/
+brag-output-*/composition/.hyperframes/
+brag-output-*/build/snaps*/
+brag-output-*/build/f0.png

@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Twirly trailer</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      @font-face { font-family: 'Twirly Sans'; src: url('assets/fonts/segoeui.ttf'); font-weight: 400; }
+      @font-face { font-family: 'Twirly Sans'; src: url('assets/fonts/seguisb.ttf'); font-weight: 600; }
+      @font-face { font-family: 'Twirly Sans'; src: url('assets/fonts/segoeuib.ttf'); font-weight: 700; }
+      /* Twirly's own design tokens (apps/desktop/src/renderer/styles/tokens.css). */
+      :root {
+        --color-bg: #0b0f14;
+        --color-surface: #151b23;
+        --color-elevated: #1c2530;
+        --color-raised: #232e3b;
+        --color-accent: #3b82f6;
+        --color-accent-hover: #60a5fa;
+        --color-fg: #f3f6fa;
+        --color-fg-2: #9ba8b8;
+        --color-line: rgb(255 255 255 / 0.08);
+        --color-line-strong: rgb(255 255 255 / 0.14);
+        --color-success: #4ade80;
+        --wheel-segment: rgb(21 27 35 / 0.94);
+      }
+      body { margin: 0; background: #0b0f14; color: var(--color-fg); font-family: 'Twirly Sans', sans-serif; }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #0b0f14; }
+      .layer { position: absolute; inset: 0; }
+      .clip { position: absolute; inset: 0; width: 100%; height: 100%; box-sizing: border-box; }
+      .scene { position: absolute; inset: 0; }
+      #glow { background: radial-gradient(1100px 700px at 50% 52%, rgb(59 130 246 / 0.16), transparent 70%); opacity: 0.6; }
+      #dots { opacity: 0.35; background-image: radial-gradient(rgb(255 255 255 / 0.07) 1.2px, transparent 1.2px); background-size: 36px 36px; }
+
+      .caption { position: absolute; left: 0; top: 104px; width: 1920px; text-align: center; font-size: 68px; font-weight: 700; letter-spacing: -0.02em; opacity: 0; }
+      .accent { color: var(--color-accent-hover); }
+      .muted { color: var(--color-fg-2); }
+
+      .wheel { position: absolute; width: 320px; height: 320px; opacity: 0; filter: drop-shadow(0 16px 30px rgb(0 0 0 / 0.55)); }
+      .wheel { --color-accent-hover: #2563eb; --color-accent: #1d4ed8; }
+      .wheel .st { position: absolute; inset: 0; opacity: 0; font-family: 'Twirly Sans', sans-serif; }
+      .wheel .st-idle { opacity: 1; }
+      .wheel svg { overflow: visible; display: block; }
+
+      .tile { position: absolute; width: 180px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+      .tile .thumb { width: 132px; height: 132px; border-radius: 22px; overflow: hidden; background: var(--color-elevated); border: 1px solid var(--color-line-strong); box-shadow: 0 14px 30px rgb(0 0 0 / 0.5); display: flex; align-items: center; justify-content: center; }
+      .tile .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+      .tile .name { padding: 4px 12px; border-radius: 8px; background: #2563eb; color: #fff; font-size: 20px; font-weight: 600; white-space: nowrap; }
+      .tile.hi .thumb { border-color: rgb(96 165 250 / 0.9); box-shadow: 0 0 0 4px rgb(59 130 246 / 0.25), 0 0 48px rgb(59 130 246 / 0.45); }
+
+      #drag { position: absolute; left: 0; top: 0; width: 1px; height: 1px; }
+      #cursor { position: absolute; left: -3px; top: -2px; filter: drop-shadow(0 3px 6px rgb(0 0 0 / 0.55)); }
+      #dragTile { position: absolute; left: 0; top: 0; width: 180px; }
+      .ring { position: absolute; width: 600px; height: 600px; border-radius: 50%; border: 2px solid #60a5fa; box-shadow: 0 0 40px rgb(59 130 246 / 0.6); opacity: 0; }
+
+      #key { position: absolute; left: 840px; top: 880px; width: 240px; height: 86px; border-radius: 16px; background: var(--color-elevated); border: 1px solid var(--color-line-strong); box-shadow: 0 8px 0 #06090d, 0 14px 30px rgb(0 0 0 / 0.5); color: #fff; font-size: 34px; font-weight: 600; display: flex; align-items: center; justify-content: center; opacity: 0; }
+      #keyLit { position: absolute; inset: 0; border-radius: 16px; background: #2563eb; box-shadow: 0 0 40px rgb(59 130 246 / 0.55); opacity: 0; display: flex; align-items: center; justify-content: center; }
+
+      /* JobToast, recreated from components/ProgressIndicator/JobToast.tsx */
+      #toast { position: absolute; left: 816px; top: 480px; width: 288px; box-sizing: border-box; padding: 12px; border-radius: 14px; background: rgb(21 27 35 / 0.95); border: 1px solid var(--color-line); box-shadow: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 12px 32px -8px rgb(0 0 0 / 0.6); opacity: 0; }
+      #toast .row { display: flex; gap: 8px; align-items: flex-start; }
+      #toast .icon { position: relative; width: 16px; height: 16px; margin-top: 2px; }
+      #toast .spin { position: absolute; inset: 0; box-sizing: border-box; border-radius: 50%; border: 2px solid #3b82f6; border-top-color: transparent; }
+      #toast .check { position: absolute; inset: 0; opacity: 0; }
+      #toast .t1 { font-size: 13px; font-weight: 600; }
+      #toast .t2 { position: relative; margin-top: 2px; font-size: 12px; color: var(--color-fg-2); height: 16px; }
+      #toast .t2 span { position: absolute; left: 0; top: 0; white-space: nowrap; }
+      #toast .bar { margin-top: 10px; height: 4px; border-radius: 999px; background: var(--color-raised); overflow: hidden; }
+      #toast .fill { width: 100%; height: 100%; border-radius: 999px; background: #3b82f6; transform-origin: 0 50%; }
+
+      .side { position: absolute; left: 230px; top: 360px; width: 660px; opacity: 0; }
+      .side h2 { margin: 0; font-size: 76px; line-height: 1.08; font-weight: 700; letter-spacing: -0.02em; }
+      .chip { margin-top: 34px; display: inline-flex; align-items: center; gap: 14px; padding: 12px 20px; border-radius: 14px; background: var(--color-surface); border: 1px solid var(--color-line-strong); font-size: 26px; color: var(--color-fg-2); }
+
+      .mini { position: absolute; top: 330px; width: 400px; display: flex; flex-direction: column; align-items: center; opacity: 0; }
+      .mini .wheel { position: relative; opacity: 1; }
+      .mini .label { margin-top: 64px; font-size: 30px; font-weight: 600; color: var(--color-fg); }
+      .mini .sub { margin-top: 6px; font-size: 22px; color: var(--color-fg-2); }
+
+      .editor { position: absolute; top: 300px; width: 488px; height: 640px; border-radius: 18px; border: 1px solid var(--color-line-strong); box-shadow: 0 40px 80px rgb(0 0 0 / 0.6); opacity: 0; }
+
+      #outroGlow { position: absolute; left: 700px; top: 40px; width: 520px; height: 520px; border-radius: 50%; background: radial-gradient(circle, rgb(59 130 246 / 0.35), transparent 65%); opacity: 0; }
+      #icon { position: absolute; left: 855px; top: 195px; width: 210px; height: 210px; opacity: 0; }
+      #word { position: absolute; left: 0; top: 430px; width: 1920px; text-align: center; font-size: 124px; font-weight: 700; letter-spacing: -0.03em; opacity: 0; }
+      #tag { position: absolute; left: 0; top: 600px; width: 1920px; text-align: center; font-size: 52px; font-weight: 600; opacity: 0; }
+      #foot { position: absolute; left: 0; top: 730px; width: 1920px; text-align: center; font-size: 28px; color: var(--color-fg-2); opacity: 0; }
+      #beta { position: absolute; left: 0; top: 800px; width: 1920px; display: flex; justify-content: center; opacity: 0; }
+      #beta span { padding: 8px 18px; border-radius: 999px; border: 1px solid rgb(96 165 250 / 0.5); color: #93c5fd; font-size: 22px; font-weight: 600; }
+      #fadeOut { position: absolute; inset: 0; background: #0b0f14; opacity: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-width="1920" data-height="1080" data-duration="24.6">
+      <div id="bg" class="layer">
+        <div id="glow" class="layer"></div>
+        <div id="dots" class="layer"></div>
+      </div>
+
+      <!-- 1+2: hook and reveal -->
+      <section id="s-hook" class="clip" data-start="0" data-duration="6.7" data-track-index="1">
+        <div class="scene">
+          <div id="c1" class="caption">Drag a file.</div>
+          <div id="c2" class="caption">Tap <span class="accent">Shift</span>.</div>
+          <div id="c3" class="caption">Meet <span class="accent">Twirly</span>.</div>
+          <div id="c4" class="caption">Every action, right where you drag.</div>
+          <div id="srcTile" class="tile" data-layout-allow-overlap style="left: 470px; top: 470px">
+            <div class="thumb"><img src="assets/img/sunset.png" alt="" /></div>
+            <div class="name">sunset.png</div>
+          </div>
+          <div id="ring1" class="ring" style="left: 660px; top: 240px"></div>
+          <!--WHEEL id=w-img set=image cx=960 cy=540-->
+          <div id="key">⇧ Shift<div id="keyLit">⇧ Shift</div></div>
+          <div id="drag">
+            <div id="dragTile" class="tile" data-layout-allow-overflow>
+              <div class="thumb"><img src="assets/img/sunset.png" alt="" /></div>
+              <div class="name">sunset.png</div>
+            </div>
+            <svg id="cursor" width="40" height="40" viewBox="0 0 24 24">
+              <path d="M3 2 L3 19 L7.5 14.8 L10.4 21.4 L13.2 20.2 L10.4 13.8 L16.6 13.6 Z" fill="#fff" stroke="#0b0f14" stroke-width="1.3" stroke-linejoin="round" />
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3: drop and convert -->
+      <section id="s-convert" class="clip" data-start="6.3" data-duration="4.3" data-track-index="2">
+        <div id="convertWrap" class="scene">
+          <div id="toast">
+            <div class="row">
+              <div class="icon">
+                <div class="spin"></div>
+                <svg class="check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
+              </div>
+              <div>
+                <div class="t1">Convert to JPG</div>
+                <div class="t2"><span id="sub0">0 of 1 saved</span><span id="sub1" style="opacity: 0">1 of 1 saved</span></div>
+              </div>
+            </div>
+            <div class="bar"><div class="fill"></div></div>
+          </div>
+          <div id="tileA" class="tile" style="left: 700px; top: 470px; opacity: 0">
+            <div class="thumb"><img src="assets/img/sunset.png" alt="" /></div>
+            <div class="name">sunset.png</div>
+          </div>
+          <div id="tileB" class="tile hi" style="left: 1010px; top: 470px; width: 240px; opacity: 0">
+            <div class="thumb"><img src="assets/img/sunset.png" alt="" style="filter: saturate(1.15) contrast(1.05)" /></div>
+            <div class="name">sunset-converted.jpg</div>
+          </div>
+          <div id="c5" class="caption">Converted. <span class="muted">Original untouched.</span></div>
+        </div>
+      </section>
+
+      <!-- 4: the wheel knows the file -->
+      <section id="s-pdf" class="clip" data-start="10.5" data-duration="2.2" data-track-index="3">
+        <div class="scene">
+          <div id="ring2" class="ring" style="left: 980px; top: 260px"></div>
+          <!--WHEEL id=w-pdf set=pdf cx=1280 cy=560-->
+          <div id="sidePdf" class="side">
+            <h2>PDFs get <span class="accent">PDF tools.</span></h2>
+            <div class="chip"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>contract.pdf</div>
+          </div>
+        </div>
+      </section>
+      <section id="s-video" class="clip" data-start="12.6" data-duration="2.2" data-track-index="4">
+        <div class="scene">
+          <div id="ring3" class="ring" style="left: 980px; top: 260px"></div>
+          <!--WHEEL id=w-vid set=video cx=1280 cy=560-->
+          <div id="sideVid" class="side">
+            <h2>Video gets <span class="accent">video tools.</span></h2>
+            <div class="chip"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/></svg>launch-clip.mov</div>
+          </div>
+        </div>
+      </section>
+      <section id="s-pdfcursor" class="clip" data-start="10.5" data-duration="4.3" data-track-index="5">
+        <div class="scene">
+          <svg id="cursor2" width="40" height="40" viewBox="0 0 24 24" style="position: absolute; left: 0; top: 0; opacity: 0; filter: drop-shadow(0 3px 6px rgb(0 0 0 / 0.55))">
+            <path d="M3 2 L3 19 L7.5 14.8 L10.4 21.4 L13.2 20.2 L10.4 13.8 L16.6 13.6 Z" fill="#fff" stroke="#0b0f14" stroke-width="1.3" stroke-linejoin="round" />
+          </svg>
+        </div>
+      </section>
+
+      <!-- 5: and everything else -->
+      <section id="s-more" class="clip" data-start="14.7" data-duration="2.75" data-track-index="6">
+        <div id="moreWrap" class="scene">
+          <div id="c6" class="caption">Word, Excel, text, folders, ZIPs <span class="accent">too.</span></div>
+          <div id="m1" class="mini" style="left: 130px"><!--MINI set=docx--><div class="label">report.docx</div><div class="sub">→ PDF via your Office</div></div>
+          <div id="m2" class="mini" style="left: 550px"><!--MINI set=text--><div class="label">notes.txt</div><div class="sub">→ PDF or Word</div></div>
+          <div id="m3" class="mini" style="left: 970px"><!--MINI set=folder--><div class="label">Screenshots</div><div class="sub">→ ZIP or one PDF</div></div>
+          <div id="m4" class="mini" style="left: 1390px"><!--MINI set=zip--><div class="label">assets.zip</div><div class="sub">→ extract safely</div></div>
+        </div>
+      </section>
+
+      <!-- 6: editors -->
+      <section id="s-editors" class="clip" data-start="17.3" data-duration="3.3" data-track-index="7">
+        <div id="edWrap" class="scene">
+          <div id="c7" class="caption">Quick editors, <span class="accent">one drop away.</span></div>
+          <div id="edDrift" class="layer">
+            <img id="e1" class="editor" src="assets/img/crop.png" alt="" style="left: 146px" />
+            <img id="e2" class="editor" src="assets/img/annotate.png" alt="" style="left: 526px" />
+            <img id="e3" class="editor" src="assets/img/redact.png" alt="" style="left: 906px" />
+            <img id="e4" class="editor" src="assets/img/background.png" alt="" style="left: 1286px" />
+          </div>
+        </div>
+      </section>
+
+      <!-- 7: outro -->
+      <section id="s-outro" class="clip" data-start="20.45" data-duration="4.15" data-track-index="8">
+        <div class="scene">
+          <div id="outroGlow"></div>
+          <img id="icon" src="assets/img/icon.png" alt="" />
+          <div id="word">Twirly</div>
+          <div id="tag">Drag<span class="accent">.</span> Shift<span class="accent">.</span> Done<span class="accent">.</span></div>
+          <div id="foot">Open source (MIT) · Windows 10 &amp; 11 · Your files never leave your PC</div>
+          <div id="beta"><span>v0.1.0 beta · on GitHub</span></div>
+        </div>
+      </section>
+      <div id="fadeOut" class="layer"></div>
+
+      <!-- audio -->
+      <audio id="music" src="assets/music/bed.mp3" data-start="0" data-duration="24.6" data-track-index="10" data-volume="0.75"></audio>
+      <!--SFX-->
+    </div>
+
+    <script>
+      // Per-frame music energy (extracted with hyperframes-creative/scripts/extract-audio-data.py).
+      const RMS = /*RMS*/[];
+      const FPS = 30;
+      const SFX = /*SFXJSON*/[];
+
+      const tl = gsap.timeline({ paused: true });
+      const S = 1.95;
+      const seg = (cx, cy, i, n, s = S) => {
+        const a = (i * 360) / n * Math.PI / 180;
+        const r = 106.5 * s;
+        return { x: cx + Math.sin(a) * r, y: cy - Math.cos(a) * r };
+      };
+      // Hover states: swap which pre-rendered state of the real wheel is visible.
+      function states(id, seq) {
+        let prev = 'idle';
+        for (const [t, st] of seq) {
+          if (st === prev) continue;
+          tl.set(`#${id} .st-${prev}`, { opacity: 0 }, t);
+          tl.set(`#${id} .st-${st}`, { opacity: 1 }, t);
+          prev = st;
+        }
+      }
+      function caption(sel, a, b) {
+        tl.fromTo(sel, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power3.out' }, a);
+        tl.to(sel, { opacity: 0, duration: 0.22, ease: 'power1.in' }, b - 0.22);
+      }
+      function bloom(sel, t, from = 0.55) {
+        tl.fromTo(sel, { scale: S * from, opacity: 0 }, { scale: S, opacity: 1, duration: 0.42, ease: 'back.out(1.6)' }, t);
+      }
+      function ring(sel, t) {
+        tl.fromTo(sel, { scale: 1, opacity: 0.7 }, { scale: 1.53, opacity: 0, duration: 0.65, ease: 'power3.out', immediateRender: false }, t);
+      }
+
+      // ---- 1. Hook: drag a file, tap Shift, the wheel blooms ----
+      caption('#c1', 0.15, 1.38);
+      caption('#c2', 1.42, 2.62);
+      caption('#c3', 2.72, 4.2);
+      caption('#c4', 4.23, 6.3); // beat-locked: 4.23s
+
+      tl.set('#drag', { x: 380, y: 760 }, 0);
+      tl.set('#dragTile', { x: 0, y: 0, scale: 0.42, opacity: 0, transformOrigin: '0 0' }, 0);
+      tl.fromTo('#srcTile', { opacity: 0 }, { opacity: 1, duration: 0.3 }, 0);
+      tl.to('#drag', { x: 575, y: 575, duration: 0.55, ease: 'power2.inOut' }, 0);
+      tl.to('#srcTile', { opacity: 0.45, duration: 0.15 }, 0.8);
+      tl.to('#dragTile', { opacity: 0.92, duration: 0.15 }, 0.8);
+      tl.to('#drag', { x: 960, y: 540, duration: 1.1, ease: 'power2.inOut' }, 0.8);
+
+      tl.fromTo('#key', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.2, ease: 'power2.out' }, 1.2);
+      tl.to('#key', { y: 6, duration: 0.06 }, 1.42);
+      tl.to('#keyLit', { opacity: 1, duration: 0.06 }, 1.42);
+      tl.to('#key', { y: 0, duration: 0.08 }, 2.45);
+      tl.to('#keyLit', { opacity: 0, duration: 0.08 }, 2.45);
+      tl.to('#key', { opacity: 0, y: 20, duration: 0.25 }, 2.54);
+
+      // beat-locked: 2.12s — the wheel blooms open around the cursor
+      ring('#ring1', 2.12);
+      bloom('#w-img', 2.12);
+      tl.to('#dragTile', { scale: 0.34, opacity: 0.55, duration: 0.4 }, 2.12);
+
+      // The cursor sweeps the real segments: JPG → WEBP → CROP → COMPRESS → back to JPG.
+      const hov = [0, 1, 2, 3];
+      hov.forEach((i, n) => {
+        const p = seg(960, 540, i, 8);
+        tl.to('#drag', { x: p.x, y: p.y, duration: 0.55, ease: 'power2.inOut' }, 2.45 + n * 0.7);
+      });
+      const back = seg(960, 540, 0, 8);
+      tl.to('#drag', { x: back.x, y: back.y, duration: 0.55, ease: 'power2.inOut' }, 5.35);
+      states('w-img', [[2.85, 0], [3.5, 1], [4.2, 2], [4.9, 3], [5.62, 'idle'], [5.75, 0]]);
+
+      // beat-locked: 6.34s — drop on JPG
+      tl.to('#w-img', { scale: S * 0.92, opacity: 0, duration: 0.18, ease: 'power2.in' }, 6.34);
+      tl.to('#dragTile', { opacity: 0, duration: 0.12 }, 6.34);
+      tl.to('#cursor', { opacity: 0, duration: 0.2 }, 6.42);
+      tl.to('#srcTile', { opacity: 0, duration: 0.2 }, 6.34);
+
+      // ---- 2. Convert: the real progress toast, then the output beside the original ----
+      tl.fromTo('#toast', { opacity: 0, y: 20, scale: 1.94 }, { opacity: 1, y: 0, scale: 2, duration: 0.3, ease: 'power3.out' }, 6.45);
+      tl.to('#toast .spin', { rotation: 540, duration: 0.9, ease: 'none' }, 6.45);
+      tl.fromTo('#toast .fill', { scaleX: 0.06 }, { scaleX: 1, duration: 0.7, ease: 'power3.out' }, 6.6);
+      tl.set('#toast .spin', { opacity: 0 }, 7.35);
+      tl.set('#toast .check', { opacity: 1 }, 7.35);
+      tl.set('#sub0', { opacity: 0 }, 7.35);
+      tl.set('#sub1', { opacity: 1 }, 7.35);
+      tl.to('#toast', { opacity: 0, duration: 0.22 }, 7.93);
+      tl.fromTo('#tileA', { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 0.4, ease: 'power3.out' }, 8.15);
+      tl.fromTo('#tileB', { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.45, ease: 'back.out(1.6)' }, 8.3);
+      caption('#c5', 8.44, 10.3); // beat-locked: 8.44s
+      tl.to('#convertWrap', { opacity: 0, duration: 0.2 }, 10.32);
+
+      // ---- 3. The wheel knows the file ----
+      // beat-locked: 10.54s (PDF) and 12.65s (video)
+      ring('#ring2', 10.54);
+      bloom('#w-pdf', 10.54);
+      tl.fromTo('#sidePdf', { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.3, ease: 'power3.out' }, 10.59);
+      tl.to(['#w-pdf', '#sidePdf'], { opacity: 0, duration: 0.17 }, 12.45);
+      ring('#ring3', 12.65);
+      bloom('#w-vid', 12.65);
+      tl.fromTo('#sideVid', { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.3, ease: 'power3.out' }, 12.7);
+      tl.to(['#w-vid', '#sideVid'], { opacity: 0, duration: 0.2 }, 14.55);
+
+      tl.set('#cursor2', { x: 1240, y: 600 }, 10.5);
+      tl.to('#cursor2', { opacity: 1, duration: 0.15 }, 10.8);
+      [0, 3, 4].forEach((i, n) => {
+        const p = seg(1280, 560, i, 8);
+        tl.to('#cursor2', { x: p.x, y: p.y, duration: 0.45, ease: 'power2.inOut' }, 10.75 + n * 0.55);
+      });
+      states('w-pdf', [[11.05, 0], [11.6, 3], [12.15, 4]]);
+      tl.set('#cursor2', { x: 1240, y: 600 }, 12.65);
+      [0, 3, 7].forEach((i, n) => {
+        const p = seg(1280, 560, i, 8);
+        tl.to('#cursor2', { x: p.x, y: p.y, duration: 0.45, ease: 'power2.inOut' }, 12.86 + n * 0.55);
+      });
+      states('w-vid', [[13.16, 0], [13.71, 3], [14.26, 7]]);
+      tl.to('#cursor2', { opacity: 0, duration: 0.15 }, 12.45);
+      tl.to('#cursor2', { opacity: 1, duration: 0.15 }, 12.8);
+      tl.to('#cursor2', { opacity: 0, duration: 0.2 }, 14.55);
+
+      // ---- 4. Everything else ----
+      caption('#c6', 14.8, 17.25);
+      // beat-grid: 14.76, 15.28, 15.81, 16.34
+      [14.76, 15.28, 15.81, 16.34].forEach((t, n) => {
+        tl.fromTo(`#m${n + 1}`, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power3.out' }, t);
+        tl.fromTo(`#m${n + 1} .wheel`, { scale: 0.62 }, { scale: 1.1, duration: 0.45, ease: 'back.out(1.6)' }, t);
+      });
+      states('w-docx', [[15.1, 0]]);
+      states('w-text', [[15.62, 1]]);
+      states('w-folder', [[16.15, 1]]);
+      states('w-zip', [[16.68, 0]]);
+      tl.to('#moreWrap', { opacity: 0, duration: 0.2 }, 17.2);
+
+      // ---- 5. Editors fan in ----
+      caption('#c7', 17.5, 20.3);
+      // beat-grid: 17.38, 17.65, 17.91, 18.18 (half beats; cards, not text)
+      const rot = [-5, -1.6, 1.6, 5];
+      const yOff = [26, 0, 0, 26];
+      [17.38, 17.65, 17.91, 18.18].forEach((t, n) => {
+        tl.fromTo(`#e${n + 1}`, { opacity: 0, y: 140 + yOff[n], rotation: rot[n], scale: 0.92 }, { opacity: 1, y: yOff[n], scale: 1, duration: 0.55, ease: 'power3.out' }, t);
+      });
+      tl.fromTo('#edDrift', { scale: 1 }, { scale: 1.025, duration: 3.1, ease: 'none', transformOrigin: '50% 60%' }, 17.4);
+      tl.to('#edWrap', { opacity: 0, duration: 0.22 }, 20.3);
+
+      // ---- 6. Outro ----
+      // beat-locked: 20.54s — icon lands
+      tl.fromTo('#icon', { opacity: 0, scale: 0.6, rotation: -40 }, { opacity: 1, scale: 1, rotation: 0, duration: 0.45, ease: 'back.out(1.6)' }, 20.54);
+      tl.fromTo('#outroGlow', { opacity: 0 }, { opacity: 1, duration: 0.45 }, 20.54);
+      tl.fromTo('#word', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power3.out' }, 20.8);
+      tl.fromTo('#tag', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power3.out' }, 21.06);
+      tl.fromTo('#foot', { opacity: 0 }, { opacity: 1, duration: 0.35 }, 21.59);
+      tl.fromTo('#beta', { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.35 }, 22.12);
+      tl.to('#fadeOut', { opacity: 1, duration: 0.55, ease: 'power1.in' }, 24.0);
+
+      // ---- Audio-reactive: the background glow and the outro glow breathe with the music ----
+      const peak = Math.max(...RMS, 0.001);
+      for (let f = 0; f < RMS.length; f++) {
+        const e = RMS[f] / peak;
+        tl.call(
+          ((v) => () => {
+            document.getElementById('glow').style.opacity = String(0.5 + 0.45 * v);
+            document.getElementById('outroGlow').style.filter = `brightness(${0.9 + 0.35 * v})`;
+          })(e),
+          [],
+          f / FPS,
+        );
+      }
+
+      window.__timelines['main'] = tl;
+    </script>
+  </body>
+</html>

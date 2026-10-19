@@ -1,0 +1,1 @@
+Made Twirly: drag a file in Windows, tap Shift, and a wheel of actions opens right under your cursor. Convert, crop, redact, shrink a video for Discord, turn a Word doc into a PDF, then drop it and you're done. Free, open source, and everything runs on your PC.

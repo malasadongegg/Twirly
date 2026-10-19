@@ -12,7 +12,7 @@ program. Everything runs locally: your files never leave your PC.
 
 https://github.com/user-attachments/assets/REPLACE-WITH-UPLOADED-VIDEO
 
-*(Trailer: [`brag-output/brag.mp4`](brag-output/brag.mp4))*
+*(Trailer: [`brag-output-2026-10-19-114134/brag.mp4`](brag-output-2026-10-19-114134/brag.mp4))*
 
 ## What it does
 
@@ -47,7 +47,7 @@ Project status, architecture and known issues: [`docs/`](docs/) (start with `doc
 
 ## Credits
 
-- Trailer made with [brag](https://github.com/latent-spaces/brag). Music: "Happy Beats / Business Moves" by [ende.app](https://ende.app). Sound effects: [Kenney](https://kenney.nl) (CC0).
+- Trailer made with [brag](https://github.com/latent-spaces/brag) and [Hyperframes](https://github.com/heygen-com/hyperframes). Music: "Happy Beats / Business Moves" by [ende.app](https://ende.app). Sound effects: [Kenney](https://kenney.nl) (CC0).
 - Built with Electron, React, sharp, pdf.js, pdf-lib and FFmpeg.
 
 ## License

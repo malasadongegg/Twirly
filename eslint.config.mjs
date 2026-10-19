@@ -3,7 +3,7 @@ import tseslint from 'typescript-eslint'
 import reactHooks from 'eslint-plugin-react-hooks'
 
 export default tseslint.config(
-  { ignores: ['out/**', 'dist/**', 'release/**', 'node_modules/**', 'native/**/bin/**', 'native/**/obj/**', 'tests/.tmp/**', 'apps/desktop/src/renderer/public/**', 'brag-output/**'] },
+  { ignores: ['out/**', 'dist/**', 'release/**', 'node_modules/**', 'native/**/bin/**', 'native/**/obj/**', 'tests/.tmp/**', 'apps/desktop/src/renderer/public/**', 'brag-output/**', 'brag-output-*/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

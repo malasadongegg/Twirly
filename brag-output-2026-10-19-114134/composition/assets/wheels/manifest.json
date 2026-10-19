@@ -1,0 +1,180 @@
+{
+  "image": [
+    {
+      "label": "JPG",
+      "title": "Convert to JPG"
+    },
+    {
+      "label": "WEBP",
+      "title": "Convert to WEBP"
+    },
+    {
+      "label": "CROP",
+      "title": "Crop image"
+    },
+    {
+      "label": "COMPRESS",
+      "title": "Compress image"
+    },
+    {
+      "label": "ANNOTATE",
+      "title": "Annotate"
+    },
+    {
+      "label": "ADD BG",
+      "title": "Add background"
+    },
+    {
+      "label": "REDACT",
+      "title": "Redact"
+    },
+    {
+      "label": "METADATA",
+      "title": "View metadata"
+    }
+  ],
+  "pdf": [
+    {
+      "label": "DOCX",
+      "title": "Convert to Word (DOCX)"
+    },
+    {
+      "label": "JPG",
+      "title": "PDF pages to JPG"
+    },
+    {
+      "label": "PNG",
+      "title": "PDF pages to PNG"
+    },
+    {
+      "label": "TXT",
+      "title": "Extract text"
+    },
+    {
+      "label": "COMPRESS",
+      "title": "Compress PDF"
+    },
+    {
+      "label": "PAGES",
+      "title": "Edit pages"
+    },
+    {
+      "label": "IMAGES",
+      "title": "Extract images"
+    },
+    {
+      "label": "SPLIT",
+      "title": "Split into pages"
+    }
+  ],
+  "video": [
+    {
+      "label": "MP4",
+      "title": "Convert to MP4"
+    },
+    {
+      "label": "COMPRESS",
+      "title": "Compress video"
+    },
+    {
+      "label": "TRIM",
+      "title": "Trim & export"
+    },
+    {
+      "label": "25 MB",
+      "title": "Shrink for Messenger (25 MB)"
+    },
+    {
+      "label": "AUDIO",
+      "title": "Extract audio"
+    },
+    {
+      "label": "GIF",
+      "title": "Convert to GIF"
+    },
+    {
+      "label": "WEBM",
+      "title": "Convert to WEBM"
+    },
+    {
+      "label": "10 MB",
+      "title": "Shrink for Discord (10 MB)"
+    }
+  ],
+  "docx": [
+    {
+      "label": "PDF",
+      "title": "Convert to PDF"
+    },
+    {
+      "label": "IMAGES",
+      "title": "Extract images"
+    },
+    {
+      "label": "ZIP",
+      "title": "Compress to ZIP"
+    },
+    {
+      "label": "COPY PATH",
+      "title": "Copy path"
+    },
+    {
+      "label": "SHA-256",
+      "title": "Copy SHA-256 checksum"
+    }
+  ],
+  "folder": [
+    {
+      "label": "ZIP",
+      "title": "Compress to ZIP"
+    },
+    {
+      "label": "PDF",
+      "title": "Folder images to PDF"
+    },
+    {
+      "label": "COPY PATH",
+      "title": "Copy path"
+    }
+  ],
+  "zip": [
+    {
+      "label": "EXTRACT",
+      "title": "Extract here"
+    },
+    {
+      "label": "COPY PATH",
+      "title": "Copy path"
+    },
+    {
+      "label": "SHA-256",
+      "title": "Copy SHA-256 checksum"
+    },
+    {
+      "label": "ZIP",
+      "title": "Compress to ZIP"
+    }
+  ],
+  "text": [
+    {
+      "label": "PDF",
+      "title": "Text to PDF"
+    },
+    {
+      "label": "DOCX",
+      "title": "Text to Word (DOCX)"
+    },
+    {
+      "label": "ZIP",
+      "title": "Compress to ZIP"
+    },
+    {
+      "label": "COPY PATH",
+      "title": "Copy path"
+    },
+    {
+      "label": "SHA-256",
+      "title": "Copy SHA-256 checksum"
+    }
+  ]
+}
