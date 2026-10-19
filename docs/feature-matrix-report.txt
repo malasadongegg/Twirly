@@ -1,0 +1,62 @@
+PASS  image.convert.png          photo-converted.png
+PASS  image.convert.jpeg         alpha-converted.jpg
+PASS  image.convert.webp         alpha-converted.webp
+PASS  image.convert.avif         alpha-converted.avif
+PASS  image.convert.tiff         alpha-converted.tiff
+PASS  image.convert.bmp          alpha-converted.bmp
+PASS  image.convert.jpeg         jfif → jpg, lossless
+PASS  image.convert.jpeg         heic grid → 2560×1440 jpg
+PASS  image.convert.png          gif → png
+PASS  image.compress             smaller
+PASS  image.rotate               alpha-rotated.png
+PASS  image.strip-metadata       photo-clean.jpg
+PASS  image.crop                 100×50
+PASS  image.resize               200×150
+PASS  image.background           160×160
+PASS  image.redact               photo-redacted.jpg
+PASS  image.annotate             jpeg
+PASS  image.to-pdf               2 pages
+PASS  image.metadata (view)      Make=MatrixCam, Model=M1
+PASS  pdf.to-png                 3 pages
+PASS  pdf.to-jpeg                3 pages
+PASS  pdf.to-text                doc.txt
+PASS  pdf.to-docx                opens in Word, PAGES=3
+PASS  pdf.merge                  3 + 2 = 5 pages
+PASS  pdf.split                  2 files
+PASS  pdf.rotate                 rotation 90
+PASS  pdf.optimize               3 pages
+PASS  pdf.edit                   2 pages
+PASS  pdf.extract-images         1 image extracted → image-001.jpg
+PASS  pdf.compress               2.6 MB → 0.2 MB
+PASS  pdf.compress (small PDF)   This PDF is already compact. Its images could not be made meaningfully smaller.
+PASS  video.to-webm              clip-converted.webm (vp9+opus)
+PASS  video.compress             clip-compressed.mp4 (h264+aac)
+PASS  video.extract-audio        clip-audio.m4a (aac)
+PASS  video.to-gif               clip-converted.gif (gif)
+PASS  video.edit                 2.00 s
+PASS  video.fit-10mb             9.47 MB (source 11.8 MB)
+PASS  audio.to-mp3               tone-converted.mp3 (mp3)
+PASS  audio.to-m4a               tone-converted.m4a (aac)
+PASS  audio.to-flac              tone-converted.flac (flac)
+PASS  audio.to-ogg               tone-converted.ogg (vorbis)
+PASS  audio.normalize            tone-normalized.wav (pcm_s16le)
+PASS  audio.edit                 1.50 s
+PASS  file.copy-path             2 paths copied
+PASS  file.checksum              clipboard = 62d00edc52da59a1…
+PASS  file.zip                   Album.zip
+PASS  archive.extract            3 files extracted → 3 items
+PASS  folder.images-to-pdf       3 images → 1 PDF (3 pages)
+PASS  text.to-pdf                1 page
+PASS  text.to-pdf                csv → 1 page
+PASS  text.to-docx               notes.docx
+PASS  text.combine               4 headers
+PASS  document.to-pdf            Word → PDF, 1 page(s)
+PASS  document.extract-images    Word: 1 image extracted
+PASS  document.to-pdf            Excel → PDF, 1 page(s)
+PASS  document.extract-images    Excel: 1 image extracted
+PASS  document.to-pdf            PowerPoint → PDF, 1 page(s)
+PASS  document.extract-images    PowerPoint: 1 image extracted
+PASS  error: empty .png          empty.png is empty (no data inside).
+PASS  setting: output folder     C:\Users\Mark\Documents\Projects\Twirly\tests\.tmp\matrix\Exports\photo-converted.webp
+PASS  collision-safe names       alpha-converted (2).webp / alpha-converted (3).webp
+PASS  cancel cleans up           cancelled, temp files left: 0

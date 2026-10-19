@@ -81,7 +81,12 @@ export class JobRunner {
       if (rejected.length > 0) throw new UserFacingError(`${rejected[0]!.reason}: ${rejected[0]!.path}`)
       const caps = await getCapabilities()
       const bad = files.find((f) => !acceptsFile(action, f, caps))
-      if (bad) throw new UserFacingError(`${action.title} cannot process ${bad.name}`)
+      if (bad) {
+        // Say why when the file itself is the problem (empty or not really what its name says).
+        if (bad.kind === 'unknown' && (bad.size === 0 || bad.format === 'empty')) throw new UserFacingError(`${bad.name} is empty (no data inside).`)
+        if (bad.kind === 'unknown') throw new UserFacingError(`${bad.name} is damaged or not really a .${bad.ext} file.`)
+        throw new UserFacingError(`${action.title} cannot process ${bad.name}`)
+      }
       if (files.length < action.minFiles || files.length > action.maxFiles)
         throw new UserFacingError(`${action.title} needs ${action.minFiles}–${action.maxFiles} files`)
       const unavailable = action.unavailableReason?.(caps)
