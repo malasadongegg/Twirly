@@ -37,6 +37,8 @@ function detectIsoBmff(bytes: Uint8Array): DetectedFormat | null {
  */
 export function detectFormat(bytes: Uint8Array, ext: string): DetectedFormat {
   const e = ext.toLowerCase()
+  // Zero-filled files (failed copies, broken downloads) look like nothing at all; say so.
+  if (bytes.length > 0 && bytes.every((b) => b === 0)) return { format: 'empty', kind: 'unknown' }
 
   if (startsWith(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) return { format: 'png', kind: 'image' }
   if (startsWith(bytes, [0xff, 0xd8, 0xff])) return { format: 'jpeg', kind: 'image' }

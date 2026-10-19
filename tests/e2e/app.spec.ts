@@ -523,3 +523,13 @@ test('dragging a .docx shows Word actions immediately (Office MIME type)', async
   await syntheticDrag(home, 'dragleave', 0, 0, [docx])
   await expect(home.getByTestId('radial-wheel')).toBeHidden({ timeout: 2000 })
 })
+
+test('a broken (zero-filled) .png explains itself instead of offering conversions', async () => {
+  const broken = join(work, 'broken-copy.png')
+  await writeFile(broken, Buffer.alloc(271))
+  await stubFileDialog([broken])
+  await home.getByRole('button', { name: /Browse files/ }).click()
+  await expect(home.getByTestId('radial-wheel')).toHaveAttribute('data-hub', 'Empty file (no data inside)')
+  await expect(home.getByTestId('wheel-segment-image.convert.jpeg')).toHaveCount(0)
+  await home.keyboard.press('Escape')
+})

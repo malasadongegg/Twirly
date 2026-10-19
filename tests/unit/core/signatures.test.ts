@@ -52,3 +52,9 @@ describe('extensionMatches', () => {
     expect(extensionMatches('png', 'jpg')).toBe(false)
   })
 })
+
+describe('broken files', () => {
+  it('flags zero-filled files as empty', () => {
+    expect(detectFormat(new Uint8Array(64), 'png')).toEqual({ format: 'empty', kind: 'unknown' })
+  })
+})

@@ -26,6 +26,9 @@ export interface WheelState {
   clickToChoose?: boolean
 }
 
+/** Extensions Twirly normally handles: an unidentified file with one of these is damaged. */
+const KNOWN_EXTS = ['png', 'jpg', 'jpeg', 'webp', 'avif', 'tif', 'tiff', 'bmp', 'gif', 'heic', 'pdf', 'mp4', 'mov', 'mkv', 'webm', 'mp3', 'wav', 'flac', 'docx', 'xlsx', 'pptx']
+
 const CLOSED: WheelState = { phase: 'closed', files: [], real: false, actions: [], active: null }
 
 export function hubLabelFor(state: WheelState): string {
@@ -36,6 +39,12 @@ export function hubLabelFor(state: WheelState): string {
   // Unknown types mid-drag (folders, some videos): the centre reveals the real actions on drop.
   if (!state.real && state.files.every((f) => f.kind === 'unknown')) return 'Drop in the centre for all actions'
   if (!state.real) return n === 1 ? '1 file' : `${n} files`
+  // A real file we couldn't identify: explain instead of silently offering only generic actions.
+  if (n === 1 && state.files[0]!.kind === 'unknown') {
+    const f = state.files[0]!
+    if (f.size === 0 || f.format === 'empty') return 'Empty file (no data inside)'
+    if (KNOWN_EXTS.includes(f.ext)) return `Not a valid ${f.ext.toUpperCase()} file`
+  }
   const total = state.files.reduce((s, f) => s + Math.max(f.size, 0), 0)
   return n === 1 ? formatBytes(total) : `${describeSelection(state.files)} · ${formatBytes(total)}`
 }
