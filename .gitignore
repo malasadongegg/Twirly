@@ -27,3 +27,5 @@ brag-output-*/composition/assets/fonts/
 brag-output-*/composition/.hyperframes/
 brag-output-*/build/snaps*/
 brag-output-*/build/f0.png
+# Downloaded at build time by scripts/fetch-ffmpeg.mjs
+vendor/

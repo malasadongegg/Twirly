@@ -1,4 +1,5 @@
 /// <reference lib="dom" />
+import { execFileSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -21,6 +22,10 @@ test.beforeAll(async () => {
   await mkdir(work, { recursive: true })
   const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => k !== 'ELECTRON_RUN_AS_NODE')) as Record<string, string>
   env.TWIRLY_USER_DATA = join(work, 'user-data')
+  // Hide any system FFmpeg so the bundled copy is what gets tested (a friend's PC has none).
+  for (const key of Object.keys(env).filter((k) => k.toLowerCase() === 'path')) {
+    env[key] = env[key]!.split(';').filter((d) => !/ffmpeg/i.test(d)).join(';')
+  }
   app = await electron.launch({ executablePath: exe, args: [], env })
   home = await (async () => {
     for (;;) {
@@ -68,4 +73,19 @@ test('packaged: pdf.js renders from inside the asar (worker, fonts, cmaps)', asy
   await runViaWheel(pdf, 'pdf.to-png')
   const meta = await sharp(join(work, 'd-converted.png')).metadata()
   expect([meta.width, meta.height]).toEqual([300, 150])
+})
+
+test('packaged: bundled FFmpeg is used with no FFmpeg on PATH (video, HEIC)', async () => {
+  const diag = await home.evaluate(() => window.twirly.diagnostics())
+  expect(diag.capabilities.ffmpeg.available).toBe(true)
+  expect(diag.capabilities.ffmpeg.path).toMatch(/resources[\\/]ffmpeg[\\/]ffmpeg\.exe$/i)
+  expect(diag.capabilities.ffprobe.available).toBe(true)
+  expect(diag.capabilities.imageInput).toContain('heic')
+
+  // A 1 s test clip, made with the bundled FFmpeg itself.
+  const ff = join(exe, '..', 'resources', 'ffmpeg', 'ffmpeg.exe')
+  const mov = join(work, 'clip.mov')
+  execFileSync(ff, ['-v', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc=size=160x120:rate=10', '-f', 'lavfi', '-i', 'sine=frequency=440', '-t', '1', '-c:v', 'mpeg4', '-c:a', 'aac', '-shortest', mov])
+  await runViaWheel(mov, 'video.to-mp4')
+  expect(existsSync(join(work, 'clip-converted.mp4'))).toBe(true)
 })

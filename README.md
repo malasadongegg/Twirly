@@ -19,7 +19,7 @@ program. Everything runs locally: your files never leave your PC.
   - **PDFs**: to JPG/PNG/TXT/Word (DOCX), merge, split, rotate, compress, extract images, page editor (reorder, rotate, delete, extract, crop).
   - **Word, Excel, PowerPoint**: to PDF (uses your installed Office, or LibreOffice), extract images.
   - **Text files** (.txt, .md, .csv, .json…): to PDF, to Word, combine several into one.
-  - **Video & audio** (with FFmpeg): convert, compress, extract audio, GIF, trim, **shrink for Messenger (25 MB) / Discord (10 MB)**.
+  - **Video & audio**: convert, compress, extract audio, GIF, trim, **shrink for Messenger (25 MB) / Discord (10 MB)**.
   - **Folders & ZIPs**: zip anything, extract ZIPs safely, turn a folder of images into one PDF.
   - **Anything**: copy its path, copy its SHA-256 checksum.
 - **Safe by default**: originals are never overwritten; outputs land next to them (`photo-converted.webp`).
@@ -28,7 +28,7 @@ program. Everything runs locally: your files never leave your PC.
 
 Download the latest installer from [Releases](../../releases) (marked **pre-release**). Windows 10/11, x64.
 
-Optional: install [FFmpeg](https://ffmpeg.org/) (`winget install Gyan.FFmpeg`) for video, audio and HEIC.
+Everything is included: video, audio and HEIC work out of the box (FFmpeg ships inside the installer). Only **Word/Excel/PowerPoint → PDF** needs Microsoft Office or [LibreOffice](https://www.libreoffice.org/) on the PC; without one, that action is simply hidden.
 
 ## Build from source
 
@@ -46,6 +46,7 @@ Project status, architecture and known issues: [`docs/`](docs/) (start with `doc
 
 - Trailer made with [brag](https://github.com/latent-spaces/brag) and [Hyperframes](https://github.com/heygen-com/hyperframes). Music: "Happy Beats / Business Moves" by [ende.app](https://ende.app). Sound effects: [Kenney](https://kenney.nl) (CC0).
 - Built with Electron, React, sharp, pdf.js, pdf-lib and FFmpeg.
+- The installer bundles [FFmpeg](https://ffmpeg.org) as separate, unmodified executables under the GNU GPL (licence in `resources/ffmpeg/LICENSE.txt`; build from [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds), source at [FFmpeg/FFmpeg](https://github.com/FFmpeg/FFmpeg)).
 
 ## License
 

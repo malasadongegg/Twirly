@@ -25,8 +25,9 @@ Bump `version` in `package.json` first. The installer name comes from `nsis.arti
 
 ## Runtime dependencies
 
-- **FFmpeg/FFprobe**: not bundled (the common Windows builds are GPL). Users install them, e.g.
-  `winget install Gyan.FFmpeg`. Twirly detects them on PATH. Media actions are hidden when absent.
+- **FFmpeg/FFprobe**: bundled. `npm run dist` runs `npm run ffmpeg:fetch`, which downloads the BtbN
+  `n9.0 gpl-shared` build into `vendor/ffmpeg` (git-ignored); electron-builder copies it to `resources/ffmpeg`
+  with its GPL licence. A system FFmpeg on PATH is only a fallback.
 - **LibreOffice**: optional, not used yet.
 
 ## Signing (required before public distribution)

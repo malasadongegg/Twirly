@@ -13,7 +13,7 @@
 | IPC validation | zod | Every IPC payload is parsed in main before use. |
 | Images | sharp (libvips) | PNG/JPEG/WebP/AVIF/TIFF/GIF in the prebuilt binary. BMP is not in libvips: decode via FFmpeg (when present), encode with our own small BMP writer. HEIC (HEVC) is **not** in sharp's prebuilt libvips: not advertised. |
 | PDF | pdf-lib (structure edits) + pdf.js (render/thumbnails/text, in the renderer) | pdf-lib cannot render; pdf.js cannot write. |
-| Audio/video | FFmpeg/FFprobe as an **external** dependency (PATH or configured path) | GPL builds cannot simply be bundled in a closed installer. Codecs are detected at runtime (`ffmpeg -encoders`). |
+| Audio/video | FFmpeg/FFprobe **bundled** as separate executables (`resources/ffmpeg`, fetched by `npm run ffmpeg:fetch`); falls back to PATH | GPL build shipped unmodified next to the MIT app, with its licence and source links. Codecs are detected at runtime (`ffmpeg -encoders`). |
 | Documents | LibreOffice headless, optional, detected | Not installed on the dev machine; actions hidden when missing. |
 | Native helper | C# / .NET 10, published self-contained single-file | The .NET 10 SDK is present; no C++ toolchain on the machine. P/Invoke covers `SetWindowsHookEx`, `GetSystemMetrics` and DPI APIs cleanly. |
 | Helper IPC | The child process's **stdio pipes** (JSON lines) | Only the parent holds the pipe handles, so no other process can connect. This is simpler and safer than a named pipe that needs ACLs and a handshake. |

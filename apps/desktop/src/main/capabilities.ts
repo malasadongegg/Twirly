@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process'
 import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 import { promisify } from 'node:util'
 import type { Capabilities } from '@shared/types'
 import { configureHeicDecoder, detectImageInputs, detectImageOutputs } from '@processing/images/process'
@@ -34,13 +35,23 @@ async function detectOffice(): Promise<Capabilities['office']> {
   return { word, excel, powerpoint }
 }
 
+/**
+ * FFmpeg shipped with the app (resources/ffmpeg in the installer, vendor/ffmpeg in dev), so video,
+ * audio and HEIC work out of the box. Falls back to an FFmpeg on PATH.
+ */
+function bundledFfmpeg(): string | null {
+  // process.resourcesPath is only set by Electron; the dev bundle lives in <repo>/out/main.
+  const candidates = [process.resourcesPath && join(process.resourcesPath, 'ffmpeg', 'ffmpeg.exe'), join(__dirname, '..', '..', 'vendor', 'ffmpeg', 'ffmpeg.exe')]
+  return candidates.find((p): p is string => !!p && existsSync(p)) ?? null
+}
+
 let cached: Promise<Capabilities> | null = null
 
 /** Detect once per session; `refresh` re-runs detection (Settings → Diagnostics). */
 export function getCapabilities(opts: { ffmpegPath?: string; refresh?: boolean } = {}): Promise<Capabilities> {
   if (cached && !opts.refresh) return cached
   cached = (async () => {
-    const ffmpegCmd = opts.ffmpegPath || 'ffmpeg'
+    const ffmpegCmd = opts.ffmpegPath || bundledFfmpeg() || 'ffmpeg'
     const ffprobeCmd = ffmpegCmd.replace(/ffmpeg(\.exe)?$/i, 'ffprobe$1')
     const [ffmpeg, ffprobeOut, soffice] = await Promise.all([
       detectFfmpeg(ffmpegCmd),
