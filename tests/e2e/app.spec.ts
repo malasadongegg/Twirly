@@ -366,7 +366,15 @@ test('annotate editor: arrow and text are burned into the saved copy', async () 
   const editor = await openImageEditor(src, 'image.annotate')
   const canvas = editor.getByTestId('annotate-canvas')
   await canvas.waitFor()
-  const box = (await canvas.boundingBox())!
+  await canvas.locator('img').evaluate((img: HTMLImageElement) => img.decode())
+  // The preview settles its size after layout; wait until two measurements agree.
+  let box = (await canvas.boundingBox())!
+  for (let i = 0; i < 20; i++) {
+    await editor.waitForTimeout(100)
+    const next = (await canvas.boundingBox())!
+    if (next.x === box.x && next.y === box.y && next.width === box.width) break
+    box = next
+  }
   const at = (fx: number, fy: number) => ({ x: box.x + box.width * fx, y: box.y + box.height * fy })
   // Arrow (default tool, red) across the top half.
   await editor.mouse.move(at(0.1, 0.3).x, at(0.1, 0.3).y)
