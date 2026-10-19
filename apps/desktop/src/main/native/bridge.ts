@@ -11,6 +11,7 @@ import { triggerVks } from '@shared/keys'
 export interface NativeBridgeHandlers {
   onSummon: () => void
   onMouseUp: () => void
+  onRightDown: () => void
 }
 
 export interface NativeBridgeStatus {
@@ -99,6 +100,9 @@ export function startNativeBridge(handlers: NativeBridgeHandlers, initial?: Help
         break
       case 'mouseup':
         handlers.onMouseUp()
+        break
+      case 'rightdown':
+        handlers.onRightDown()
         break
       case 'error':
         console.warn('[helper]', msg.message)

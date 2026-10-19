@@ -53,6 +53,15 @@ export function WheelWindowApp() {
     [phase, real, close],
   )
 
+  // Right-click mid-drag cancels the wheel (never a running job).
+  useEffect(
+    () =>
+      window.twirly.wheel.onCancel(() => {
+        if (phase === 'open' || phase === 'error') close()
+      }),
+    [phase, close],
+  )
+
   // Click mode: clicking outside (window loses focus) cancels, like a context menu.
   useEffect(() => {
     if (!interactive) return

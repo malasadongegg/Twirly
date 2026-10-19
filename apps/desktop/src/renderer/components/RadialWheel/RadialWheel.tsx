@@ -109,6 +109,11 @@ export function RadialWheel({
       onKeyDown={onKeyDown}
       onPointerMove={interactive ? (e) => onHover?.(indexFromPointer(e)) : undefined}
       onPointerLeave={interactive ? () => onHover?.(null) : undefined}
+      onContextMenu={(e) => {
+        // Right-click anywhere on the wheel cancels it.
+        e.preventDefault()
+        onCancel?.()
+      }}
       onPointerUp={
         interactive
           ? (e) => {

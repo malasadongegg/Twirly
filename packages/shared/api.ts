@@ -86,6 +86,8 @@ export interface TwirlyApi {
     onShow(cb: (e: WheelShowEvent) => void): () => void
     onHide(cb: () => void): () => void
     onDragState(cb: (s: { buttonDown: boolean }) => void): () => void
+    /** Right-click mid-drag (reported by the helper). */
+    onCancel(cb: () => void): () => void
     dismiss(): Promise<void>
   }
 }

@@ -19,6 +19,7 @@ export const IPC = {
   wheelHide: 'wheel:hide',
   wheelDismiss: 'wheel:dismiss',
   wheelDragState: 'wheel:drag-state',
+  wheelCancel: 'wheel:cancel',
   settingsGet: 'settings:get',
   settingsSet: 'settings:set',
   settingsChanged: 'settings:changed',

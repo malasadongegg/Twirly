@@ -124,6 +124,10 @@ public static unsafe class Program
                         (Math.Abs(info->pt.X - _downPoint.X) > _dragX || Math.Abs(info->pt.Y - _downPoint.Y) > _dragY))
                         _moved = true;
                     break;
+                case Native.WM_RBUTTONDOWN:
+                    // Right-click while the drag-summoned wheel is open = cancel it.
+                    if (_summoned) Send("rightdown");
+                    break;
                 case Native.WM_LBUTTONUP:
                     if (_buttonDown) Send("mouseup");
                     _buttonDown = false;

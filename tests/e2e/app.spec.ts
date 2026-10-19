@@ -541,3 +541,12 @@ test('a broken (zero-filled) .png explains itself instead of offering conversion
   await expect(home.getByTestId('wheel-segment-image.convert.jpeg')).toHaveCount(0)
   await home.keyboard.press('Escape')
 })
+
+test('right-click cancels the wheel', async () => {
+  await stubFileDialog([join(work, 'sample.png')])
+  await home.getByRole('button', { name: /Browse files/ }).click()
+  const wheel = home.getByTestId('radial-wheel')
+  await expect(wheel).toBeVisible()
+  await wheel.click({ button: 'right' })
+  await expect(wheel).toBeHidden({ timeout: 2000 })
+})

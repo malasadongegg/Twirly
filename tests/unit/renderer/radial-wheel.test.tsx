@@ -49,6 +49,13 @@ describe('RadialWheel', () => {
     expect(onCancel).toHaveBeenCalled()
   })
 
+  it('cancels on right-click', () => {
+    const onCancel = vi.fn()
+    render(<RadialWheel items={items} activeIndex={null} hubLabel="" interactive onCancel={onCancel} />)
+    fireEvent.contextMenu(screen.getByRole('menu'))
+    expect(onCancel).toHaveBeenCalledTimes(1)
+  })
+
   it('ignores keys when not interactive (drag mode)', () => {
     const onSelect = vi.fn()
     render(<RadialWheel items={items} activeIndex={0} hubLabel="" onSelect={onSelect} />)

@@ -6,6 +6,8 @@ const helperMessage = z.discriminatedUnion('type', [
   /** Shift went down while the left button was held and the cursor had moved past the drag threshold. */
   z.object({ type: z.literal('summon'), x: z.number(), y: z.number(), process: z.string().optional() }),
   z.object({ type: z.literal('mouseup') }),
+  /** Right button pressed while a summoned wheel is open: cancel it. */
+  z.object({ type: z.literal('rightdown') }),
   z.object({ type: z.literal('error'), message: z.string() }),
 ])
 

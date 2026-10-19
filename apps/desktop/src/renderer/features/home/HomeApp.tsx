@@ -168,6 +168,10 @@ export function HomeApp() {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => interactive && session.state.phase === 'open' && session.close()}
+              onContextMenu={(e) => {
+                e.preventDefault()
+                if (session.state.phase === 'open' || session.state.phase === 'error') session.close()
+              }}
               />
             )}
           </AnimatePresence>

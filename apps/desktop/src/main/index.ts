@@ -149,6 +149,7 @@ if (!app.requestSingleInstanceLock()) {
           spikeLog('wheel-shown', { bounds: wheelWindow.getBounds() })
         },
         onMouseUp: () => wheelWindow?.webContents.send(IPC.wheelDragState, { buttonDown: false }),
+        onRightDown: () => wheelWindow?.isVisible() && wheelWindow.webContents.send(IPC.wheelCancel),
       },
       settings.dragSummon,
     )

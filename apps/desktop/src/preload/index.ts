@@ -41,6 +41,7 @@ const api: TwirlyApi = {
     onShow: (cb) => subscribe(IPC.wheelShow, cb),
     onHide: (cb) => subscribe(IPC.wheelHide, () => cb()),
     onDragState: (cb) => subscribe(IPC.wheelDragState, cb),
+    onCancel: (cb) => subscribe(IPC.wheelCancel, () => cb()),
     dismiss: () => ipcRenderer.invoke(IPC.wheelDismiss),
   },
 }
