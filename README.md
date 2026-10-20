@@ -2,6 +2,14 @@
 
 **Drag a file, tap Shift, drop it on what you want.**
 
+<p align="center">
+  <a href="brag-output-2026-10-19-114134/brag.mp4">
+    <img src="docs/media/demo.gif" alt="Dragging sunset.png, tapping Shift: the Twirly wheel opens under the cursor and converting to WEBP leaves the original untouched" width="800">
+  </a>
+  <br>
+  <sub>▶ <a href="brag-output-2026-10-19-114134/brag.mp4">Watch the full 25-second trailer</a> (with sound)</sub>
+</p>
+
 Twirly is an open-source Windows app that opens a radial action wheel right under your cursor
 while you drag files. Convert, crop, annotate, redact or compress them without opening another
 program. Everything runs locally: your files never leave your PC.
@@ -23,6 +31,21 @@ program. Everything runs locally: your files never leave your PC.
   - **Folders & ZIPs**: zip anything, extract ZIPs safely, turn a folder of images into one PDF.
   - **Anything**: copy its path, copy its SHA-256 checksum.
 - **Safe by default**: originals are never overwritten; outputs land next to them (`photo-converted.webp`).
+
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center" width="33%"><img src="docs/media/wheel.png" alt="The action wheel for an image: JPG, WEBP, Crop, Compress, Annotate, Add BG, Remove BG, Redact"><br><b>The wheel</b><br><sub>Hover an action, release to run it</sub></td>
+    <td align="center" width="33%"><img src="docs/media/remove-background.png" alt="Remove background editor with Touch up brushes"><br><b>Remove background</b><br><sub>AI on your PC, then touch up with Keep / Erase</sub></td>
+    <td align="center" width="33%"><img src="docs/media/add-background.png" alt="Add background editor with gradient presets, padding, corners and shadow"><br><b>Add background</b><br><sub>Presets, your colors or a picture</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/media/annotate.png" alt="Annotate editor with arrow and text tools"><br><b>Annotate</b><br><sub>Arrows, shapes, pen, highlighter, text</sub></td>
+    <td align="center"><img src="docs/media/trim-video.png" alt="Trim video editor with start and end handles and format options"><br><b>Trim video</b><br><sub>Cut, then export MP4, WEBM, GIF, MP3…</sub></td>
+    <td align="center"><img src="docs/media/redact.png" alt="Redact editor: covered pixels are replaced and metadata removed"><br><b>Redact</b><br><sub>Pixels replaced, not blurred; metadata stripped</sub></td>
+  </tr>
+</table>
 
 ## Install
 
