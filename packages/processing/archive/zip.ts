@@ -218,3 +218,34 @@ export async function extractMatching(zipPath: string, match: (name: string) => 
   })
   return out
 }
+
+/**
+ * Read the named entries of a ZIP into memory (Office XML parts). Entries larger than `maxBytes`
+ * uncompressed are refused rather than read, so a crafted document can't exhaust memory.
+ */
+export async function readZipEntries(zipPath: string, names: string[], signal?: AbortSignal, maxBytes = 200 * 1024 ** 2): Promise<Map<string, Buffer>> {
+  const wanted = new Set(names)
+  const out = new Map<string, Buffer>()
+  const zf = await openZip(zipPath)
+  await new Promise<void>((resolveP, reject) => {
+    zf.on('error', reject)
+    zf.on('end', () => resolveP())
+    zf.on('entry', async (e: yauzl.Entry) => {
+      try {
+        signal?.throwIfAborted()
+        if (!wanted.has(e.fileName)) return zf.readEntry()
+        if (e.uncompressedSize > maxBytes) throw new UserFacingError(`${e.fileName} inside this file is too large to read.`)
+        const stream = await new Promise<NodeJS.ReadableStream>((res, rej) => zf.openReadStream(e, (err, s) => (err ? rej(err) : res(s!))))
+        const chunks: Buffer[] = []
+        for await (const chunk of stream) chunks.push(chunk as Buffer)
+        out.set(e.fileName, Buffer.concat(chunks))
+        zf.readEntry()
+      } catch (err) {
+        zf.close()
+        reject(err)
+      }
+    })
+    zf.readEntry()
+  })
+  return out
+}

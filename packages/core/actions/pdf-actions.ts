@@ -131,4 +131,4 @@ export const IMAGES_TO_PDF: ActionDefinition = {
   suffix: 'converted',
 }
 
-export const DEFAULT_PDF_ORDER = ['pdf.to-docx', 'pdf.to-jpeg', 'pdf.to-png', 'pdf.to-text', 'pdf.merge', 'pdf.compress', 'pdf.edit', 'pdf.extract-images', 'pdf.split', 'pdf.rotate', 'pdf.optimize']
+export const DEFAULT_PDF_ORDER = ['pdf.to-docx', 'pdf.to-jpeg', 'pdf.to-png', 'pdf.to-text', 'file.to-markdown', 'pdf.merge', 'pdf.compress', 'pdf.edit', 'pdf.extract-images', 'pdf.split', 'pdf.rotate', 'pdf.optimize']

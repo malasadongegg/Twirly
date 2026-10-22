@@ -2,6 +2,7 @@ import {
   AudioLines,
   Crop,
   Eraser,
+  FileCode,
   FileImage,
   FileOutput,
   FileStack,
@@ -20,6 +21,7 @@ import {
   FolderOpen,
   Send,
   WandSparkles,
+  WholeWord,
   Images,
   Info,
   LayoutGrid,
@@ -68,4 +70,6 @@ export const ACTION_ICONS: Record<ActionIcon, LucideIcon> = {
   'folder-open': FolderOpen,
   send: Send,
   'wand-sparkles': WandSparkles,
+  'file-code': FileCode,
+  'whole-word': WholeWord,
 }

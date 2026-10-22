@@ -151,6 +151,20 @@ describe('new kinds: folders, archives, documents, text, anything', () => {
     expect(ids([file('txt', 'text')])).not.toContain('text.combine')
     expect(ids([file('txt', 'text'), file('md', 'text')])).toContain('text.combine')
   })
+  it('Markdown for Word, PDF and text files, mixed too, but not for Markdown itself or old .doc', () => {
+    expect(ids([file('docx', 'document')])).toContain('file.to-markdown')
+    expect(ids([file('pdf', 'pdf')])).toContain('file.to-markdown')
+    expect(ids([file('csv', 'text')])).toContain('file.to-markdown')
+    expect(ids([file('docx', 'document'), file('pdf', 'pdf'), file('txt', 'text')])).toContain('file.to-markdown')
+    expect(ids([file('md', 'text')])).not.toContain('file.to-markdown')
+    expect(ids([file('doc', 'document')])).not.toContain('file.to-markdown')
+    expect(ids([file('xlsx', 'document')])).not.toContain('file.to-markdown')
+  })
+  it('counts words in Word, PDF and text files, Markdown included', () => {
+    expect(ids([file('md', 'text')])).toContain('file.word-count')
+    expect(ids([file('docx', 'document'), file('pdf', 'pdf')])).toContain('file.word-count')
+    expect(ids([file('png')])).not.toContain('file.word-count')
+  })
   it('keeps the image wheel focused on image tools', () => {
     expect(ids([file('png')])).not.toContain('file.copy-path')
   })
