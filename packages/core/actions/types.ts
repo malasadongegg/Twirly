@@ -34,6 +34,8 @@ export type ActionIcon =
   | 'folder-open'
   | 'send'
   | 'wand-sparkles'
+  | 'file-code'
+  | 'whole-word'
 
 export type ActionMode = 'instant' | 'editor'
 export type EditorKind = 'image' | 'pdf' | 'media' | 'background' | 'redact' | 'metadata' | 'annotate' | 'removebg'

@@ -28,6 +28,7 @@ program. Everything runs locally: your files never leave your PC.
   - **PDFs**: to JPG/PNG/TXT/Word (DOCX), merge, split, rotate, compress, extract images, page editor (reorder, rotate, delete, extract, crop).
   - **Word, Excel, PowerPoint**: to PDF (uses your installed Office, or LibreOffice), extract images.
   - **Text files** (.txt, .md, .csv, .json…): to PDF, to Word, combine several into one.
+  - **To Markdown**: Word (DOCX), PDF and text files to `.md`: headings, lists, tables, links, footnotes and images (copied beside it). CSV becomes a table. **Count words** for any of them.
   - **Video & audio**: convert, compress, extract audio, GIF, trim, **shrink for Messenger (25 MB) / Discord (10 MB)**.
   - **Folders & ZIPs**: zip anything, extract ZIPs safely, turn a folder of images into one PDF.
   - **Anything**: copy its path, copy its SHA-256 checksum.

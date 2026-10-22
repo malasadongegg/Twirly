@@ -228,3 +228,44 @@ describe.runIf(hasFfmpeg)('fit to size (real FFmpeg, two-pass)', () => {
     expect((await probeMedia('ffprobe', out)).durationSec).toBeGreaterThan(7.5)
   }, 120_000)
 })
+
+describe('Markdown', () => {
+  it('converts a .docx with an image: links the image and copies it out under its own name', async () => {
+    const { convertDocx } = await import('@processing/text/to-markdown')
+    const png = await sharp({ create: { width: 4, height: 4, channels: 3, background: '#c00' } }).png().toBuffer()
+    const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"'
+    const document = `<?xml version="1.0"?><w:document ${W}><w:body>
+      <w:p><w:pPr><w:pStyle w:val="Heading1"/></w:pPr><w:r><w:t>Trip</w:t></w:r></w:p>
+      <w:p><w:r><w:drawing><wp:inline><wp:docPr id="1" name="p" descr="Red square"/><a:graphic><a:graphicData><pic:pic><pic:blipFill><a:blip r:embed="rId7"/></pic:blipFill></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>
+    </w:body></w:document>`
+    const rels = `<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId7" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image1.png"/></Relationships>`
+    const file = join(root, 'trip.docx')
+    await writeFile(
+      file,
+      storeZip([
+        { name: 'word/document.xml', data: enc.encode(document) },
+        { name: 'word/_rels/document.xml.rels', data: enc.encode(rels) },
+        { name: 'word/media/image1.png', data: png },
+      ]),
+    )
+    const doc = await convertDocx(file, 'trip images')
+    expect(doc.markdown).toBe('# Trip\n\n![Red square](trip%20images/image1.png)\n')
+    const dir = join(root, 'trip images')
+    expect(await doc.writeImages(dir)).toBe(1)
+    expect(await readFile(join(dir, 'image1.png'))).toEqual(png)
+  })
+
+  it('reads a .docx made by buildDocx (headings survive the round trip)', async () => {
+    const { convertDocx } = await import('@processing/text/to-markdown')
+    const file = join(root, 'round.docx')
+    await writeFile(file, buildDocx([{ width: 595, height: 842, paragraphs: [{ text: 'Title', heading: 1 }, { text: 'Body & more', heading: 0 }] }], 'Round'))
+    expect((await convertDocx(file, null)).markdown).toBe('# Title\n\nBody & more\n')
+  })
+
+  it('refuses a file that is not a Word document with a readable message', async () => {
+    const { convertDocx } = await import('@processing/text/to-markdown')
+    const file = join(root, 'fake.docx')
+    await writeFile(file, 'not a zip')
+    await expect(convertDocx(file, null)).rejects.toThrow(/damaged or not a \.docx/)
+  })
+})

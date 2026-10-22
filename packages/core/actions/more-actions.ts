@@ -18,6 +18,9 @@ export function officeEngineFor(format: string, caps: Capabilities): 'word' | 'e
   return null
 }
 
+/** Text formats Convert to Markdown takes: prose as text, CSV as a table, data files as code blocks. */
+const TEXT_TO_MD = ['txt', 'csv', 'log', 'json', 'xml', 'yml', 'yaml', 'ini']
+
 const needsFfmpeg = (caps: Capabilities) =>
   !caps.ffmpeg.available || !caps.ffprobe.available ? 'FFmpeg is not installed' : !['libx264', 'aac'].every((e) => caps.ffmpeg.encoders.includes(e)) ? 'FFmpeg lacks libx264/aac' : null
 
@@ -57,6 +60,21 @@ export const MORE_ACTIONS: ActionDefinition[] = [
   { id: 'text.to-docx', label: 'DOCX', title: 'Text to Word (DOCX)', icon: 'file-type', kinds: ['text'], minFiles: 1, maxFiles: 100, mode: 'instant', suffix: '' },
   { id: 'text.combine', label: 'COMBINE', title: 'Combine text files', icon: 'file-stack', kinds: ['text'], minFiles: 2, maxFiles: 500, mode: 'instant', aggregate: true, suffix: 'combined' },
 
+  // ----- Markdown and word count (Word, PDF and text files, also mixed) -----
+  {
+    id: 'file.to-markdown',
+    label: 'MARKDOWN',
+    title: 'Convert to Markdown',
+    icon: 'file-code',
+    kinds: ['document', 'pdf', 'text'],
+    formats: ['docx', 'pdf', ...TEXT_TO_MD],
+    minFiles: 1,
+    maxFiles: 100,
+    mode: 'instant',
+    suffix: '',
+  },
+  { id: 'file.word-count', label: 'WORDS', title: 'Count words', icon: 'whole-word', kinds: ['document', 'pdf', 'text'], formats: ['docx', 'pdf', 'md', ...TEXT_TO_MD], minFiles: 1, maxFiles: 100, mode: 'instant', aggregate: true, suffix: '' },
+
   // ----- video sharing presets -----
   { id: 'video.fit-25mb', label: '25 MB', title: 'Shrink for Messenger (25 MB)', icon: 'send', kinds: ['video'], minFiles: 1, maxFiles: 20, mode: 'instant', unavailableReason: needsFfmpeg, suffix: '25mb' },
   { id: 'video.fit-10mb', label: '10 MB', title: 'Shrink for Discord (10 MB)', icon: 'send', kinds: ['video'], minFiles: 1, maxFiles: 20, mode: 'instant', unavailableReason: needsFfmpeg, suffix: '10mb' },
@@ -66,7 +84,7 @@ export const MORE_ACTIONS: ActionDefinition[] = [
 export const MORE_ORDERS: Record<string, string[]> = {
   folder: ['file.zip', 'folder.images-to-pdf', 'file.copy-path'],
   archive: ['archive.extract', 'file.copy-path', 'file.checksum', 'file.zip'],
-  document: ['document.to-pdf', 'document.extract-images', 'file.zip', 'file.copy-path', 'file.checksum'],
-  text: ['text.to-pdf', 'text.to-docx', 'text.combine', 'file.zip', 'file.copy-path', 'file.checksum'],
+  document: ['document.to-pdf', 'file.to-markdown', 'document.extract-images', 'file.word-count', 'file.zip', 'file.copy-path', 'file.checksum'],
+  text: ['text.to-pdf', 'text.to-docx', 'file.to-markdown', 'text.combine', 'file.word-count', 'file.zip', 'file.copy-path', 'file.checksum'],
   unknown: ['file.zip', 'file.copy-path', 'file.checksum'],
 }

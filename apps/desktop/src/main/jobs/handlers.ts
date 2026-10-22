@@ -25,6 +25,8 @@ import { extractMatching, extractZip, zipPaths } from '@processing/archive/zip'
 import { extractPdfImages } from '@processing/pdf/extract-images'
 import { officeToPdf } from '@processing/office/convert'
 import { readText, textToDocx, textToPdf } from '@processing/text/text-docs'
+import { convertDocx } from '@processing/text/to-markdown'
+import { describeStats, paragraphsToMarkdown, textFileToMarkdown, textStats } from '@core/markdown/markdown'
 import { sha256File } from '@processing/fs/checksum'
 import { inspectPaths } from '@processing/fs/inspect'
 import { getCapabilities } from '../capabilities'
@@ -97,18 +99,9 @@ const pdfToImages = (format: 'png' | 'jpeg'): Handler =>
   })
 
 const pdfToText: Handler = eachFile(async (ctx, file, i) => {
-  const bytes = await readFile(file.path, { signal: ctx.signal })
-  const pages = await withPdf(bytes, async ({ docId, pageCount }) => {
-    const texts: string[] = []
-    for (let p = 0; p < pageCount; p++) {
-      ctx.signal.throwIfAborted()
-      texts.push((await pdfWorker<{ text: string }>({ op: 'text', docId, page: p })).text)
-      ctx.progress(i, (p + 1) / pageCount)
-    }
-    return texts
-  })
-  if (pages.every((t) => t.trim() === '')) throw new UserFacingError('This PDF has no text layer (it is probably scanned images). OCR is not supported yet.')
-  await ctx.out.write(file.path, '', 'txt', new TextEncoder().encode(pages.join('\n\n')), ctx.signal)
+  const text = await plainText(ctx, file, i)
+  if (text.trim() === '') throw new UserFacingError(NO_TEXT_LAYER)
+  await ctx.out.write(file.path, '', 'txt', new TextEncoder().encode(text), ctx.signal)
 })
 
 const pdfStructural = (fn: (doc: Awaited<ReturnType<typeof loadPdf>>, ctx: JobContext) => Promise<Uint8Array>): Handler =>
@@ -209,7 +202,8 @@ const pdfCompress: Handler = eachFile(async (ctx, file) => {
   await ctx.out.write(file.path, ctx.action.suffix, 'pdf', data, ctx.signal)
 })
 
-const pdfToDocx: Handler = eachFile(async (ctx, file, i) => {
+/** Each page's paragraphs, rebuilt from the PDF's positioned text. */
+async function pdfLayoutPages(ctx: JobContext, file: FileInfo, i: number): Promise<DocxPage[]> {
   const bytes = await readFile(file.path, { signal: ctx.signal })
   const pages = await withPdf(bytes, async ({ docId, pageCount }) => {
     const out: DocxPage[] = []
@@ -221,10 +215,82 @@ const pdfToDocx: Handler = eachFile(async (ctx, file, i) => {
     }
     return out
   })
-  if (pages.every((pg) => pg.paragraphs.length === 0)) throw new UserFacingError('This PDF has no text layer (it is probably scanned images). OCR is not supported yet.')
+  if (pages.every((pg) => pg.paragraphs.length === 0)) throw new UserFacingError(NO_TEXT_LAYER)
+  return pages
+}
+
+const NO_TEXT_LAYER = 'This PDF has no text layer (it is probably scanned images). OCR is not supported yet.'
+
+const pdfToDocx: Handler = eachFile(async (ctx, file, i) => {
+  const pages = await pdfLayoutPages(ctx, file, i)
   const title = basename(file.path).replace(/\.pdf$/i, '')
   await ctx.out.write(file.path, '', 'docx', buildDocx(pages, title), ctx.signal)
 })
+
+// ----- Markdown -----
+
+const toMarkdown: Handler = eachFile(async (ctx, file, i) => {
+  const enc = new TextEncoder()
+  if (file.kind === 'pdf') {
+    const pages = await pdfLayoutPages(ctx, file, i)
+    await ctx.out.write(file.path, '', 'md', enc.encode(paragraphsToMarkdown(pages.map((p) => p.paragraphs))), ctx.signal)
+    return
+  }
+  if (file.kind === 'document') {
+    const imagesName = `${splitName(file.name).base}-images`
+    let doc = await convertDocx(file.path, imagesName, ctx.signal)
+    if (!doc.markdown.trim()) throw new UserFacingError('This Word document has no text.')
+    if (doc.images.length) {
+      // Images go in a folder beside the .md; if that name is taken, link to the one we got.
+      const dir = await ctx.out.reserveDir(file.path, imagesName)
+      if (basename(dir) !== imagesName) doc = await convertDocx(file.path, basename(dir), ctx.signal)
+      await doc.writeImages(dir, ctx.signal)
+    }
+    await ctx.out.write(file.path, '', 'md', enc.encode(doc.markdown), ctx.signal)
+    if (doc.images.length) ctx.setMessage(`Saved with ${doc.images.length} image${doc.images.length === 1 ? '' : 's'}`)
+    return
+  }
+  const md = textFileToMarkdown(await readText(file.path, ctx.signal), file.format)
+  if (!md.trim()) throw new UserFacingError(`${file.name} is empty.`)
+  await ctx.out.write(file.path, '', 'md', enc.encode(md), ctx.signal)
+})
+
+/** The readable text of a Word, PDF or text file, for counting. */
+async function plainText(ctx: JobContext, file: FileInfo, i: number): Promise<string> {
+  if (file.kind === 'document') return (await convertDocx(file.path, null, ctx.signal)).text
+  if (file.kind !== 'pdf') return readText(file.path, ctx.signal)
+  const bytes = await readFile(file.path, { signal: ctx.signal })
+  return withPdf(bytes, async ({ docId, pageCount }) => {
+    const texts: string[] = []
+    for (let p = 0; p < pageCount; p++) {
+      ctx.signal.throwIfAborted()
+      texts.push((await pdfWorker<{ text: string }>({ op: 'text', docId, page: p })).text)
+      ctx.progress(i, (p + 1) / pageCount)
+    }
+    return texts.join('\n\n')
+  })
+}
+
+const wordCount: Handler = async (ctx) => {
+  const lines: string[] = []
+  const texts: string[] = []
+  for (let i = 0; i < ctx.files.length; i++) {
+    ctx.signal.throwIfAborted()
+    const f = ctx.files[i]!
+    const text = await plainText(ctx, f, i)
+    texts.push(text)
+    lines.push(`${f.name}: ${describeStats(textStats(text))}`)
+    ctx.progress(i + 1, null)
+  }
+  const total = textStats(texts.join('\n\n'))
+  if (ctx.files.length === 1) {
+    clipboard.writeText(`${ctx.files[0]!.name}\r\n${describeStats(total)} · ${total.lines.toLocaleString('en-US')} lines · ${total.paragraphs.toLocaleString('en-US')} paragraphs`)
+    ctx.setMessage(`${describeStats(total)} (copied)`)
+  } else {
+    clipboard.writeText([...lines, `Total: ${describeStats(total)}`].join('\r\n'))
+    ctx.setMessage(`${ctx.files.length} files: ${describeStats(total)} (copied)`)
+  }
+}
 
 // ----- generic file actions -----
 
@@ -348,6 +414,8 @@ const HANDLERS: Record<string, Handler> = {
   'text.to-pdf': textToPdfHandler,
   'text.to-docx': textToDocxHandler,
   'text.combine': textCombine,
+  'file.to-markdown': toMarkdown,
+  'file.word-count': wordCount,
   'pdf.to-docx': pdfToDocx,
   'pdf.compress': pdfCompress,
   'image.annotate': annotateHandler,
