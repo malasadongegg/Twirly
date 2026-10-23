@@ -1,5 +1,5 @@
 import type { PdfWorkerRequest } from '@shared/api'
-import { canvasToPng, openPdf, pageLayout, pageText, renderToCanvas, type PdfDoc } from './lib/pdf'
+import { canvasToPng, openPdf, pageImages, pageLayout, pageText, renderToCanvas, type PdfDoc } from './lib/pdf'
 
 /**
  * Hidden render window. Main sends PDF bytes and page requests; we answer with PNG bytes or
@@ -33,6 +33,11 @@ async function handle(req: PdfWorkerRequest): Promise<unknown> {
       const doc = docs.get(req.docId)
       if (!doc) throw new Error('Document not open')
       return pageLayout(doc, req.page)
+    }
+    case 'images': {
+      const doc = docs.get(req.docId)
+      if (!doc) throw new Error('Document not open')
+      return { images: await pageImages(doc, req.page) }
     }
     case 'close': {
       await docs.get(req.docId)?.loadingTask.destroy()

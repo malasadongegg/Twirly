@@ -34,6 +34,7 @@ export type PdfWorkerRequest =
   | { reqId: number; op: 'render'; docId: number; page: number; dpi: number; maxPixels: number }
   | { reqId: number; op: 'text'; docId: number; page: number }
   | { reqId: number; op: 'layout'; docId: number; page: number }
+  | { reqId: number; op: 'images'; docId: number; page: number }
   | { reqId: number; op: 'close'; docId: number }
 
 export type PdfWorkerResponse = { reqId: number; ok: true; result: unknown } | { reqId: number; ok: false; error: string }

@@ -81,3 +81,63 @@ export async function pageLayout(doc: PdfDoc, pageIndex: number): Promise<PageLa
   page.cleanup()
   return { width: viewport.width, height: viewport.height, runs }
 }
+
+export interface PageImageCrop {
+  /** Left edge and top edge in PDF points (y up), and size in points. */
+  x: number
+  top: number
+  width: number
+  height: number
+  png: Uint8Array
+}
+
+/**
+ * Pictures on a 0-based page, found from the drawing operations (the transform in force when an
+ * image is painted places the unit square). Each is cropped from a render of the page, so masks,
+ * clipping and odd encodings come out as they look. Page-sized backgrounds and tiny icons are skipped.
+ */
+export async function pageImages(doc: PdfDoc, pageIndex: number, dpi = 150): Promise<PageImageCrop[]> {
+  const page = await doc.getPage(pageIndex + 1)
+  const [vx, vy, vx2, vy2] = page.view as number[]
+  const [pw, ph] = [vx2! - vx!, vy2! - vy!]
+  const ops = await page.getOperatorList()
+  const O = pdfjs.OPS
+  type M = [number, number, number, number, number, number]
+  const mul = (a: M, b: M): M => [a[0] * b[0] + a[1] * b[2], a[0] * b[1] + a[1] * b[3], a[2] * b[0] + a[3] * b[2], a[2] * b[1] + a[3] * b[3], a[4] * b[0] + a[5] * b[2] + b[4], a[4] * b[1] + a[5] * b[3] + b[5]]
+  let ctm: M = [1, 0, 0, 1, 0, 0]
+  const stack: M[] = []
+  const boxes: { x0: number; y0: number; x1: number; y1: number }[] = []
+  for (let i = 0; i < ops.fnArray.length; i++) {
+    const fn = ops.fnArray[i]
+    if (fn === O.save) stack.push(ctm)
+    else if (fn === O.restore) ctm = stack.pop() ?? ctm
+    else if (fn === O.transform) ctm = mul(ops.argsArray[i] as M, ctm)
+    else if (fn === O.paintImageXObject || fn === O.paintInlineImageXObject || fn === O.paintImageMaskXObject) {
+      const xs = [ctm[4], ctm[0] + ctm[4], ctm[2] + ctm[4], ctm[0] + ctm[2] + ctm[4]]
+      const ys = [ctm[5], ctm[1] + ctm[5], ctm[3] + ctm[5], ctm[1] + ctm[3] + ctm[5]]
+      const b = { x0: Math.min(...xs) - vx!, x1: Math.max(...xs) - vx!, y0: Math.min(...ys) - vy!, y1: Math.max(...ys) - vy! }
+      const [w, h] = [b.x1 - b.x0, b.y1 - b.y0]
+      if (w < 24 || h < 24 || (w > pw * 0.95 && h > ph * 0.95)) continue
+      if (boxes.some((o) => Math.abs(o.x0 - b.x0) < 2 && Math.abs(o.y0 - b.y0) < 2 && Math.abs(o.x1 - b.x1) < 2 && Math.abs(o.y1 - b.y1) < 2)) continue
+      boxes.push(b)
+    }
+  }
+  page.cleanup()
+  if (!boxes.length || page.rotate % 360 !== 0) return []
+  const canvas = await renderToCanvas(doc, pageIndex, dpi, 25_000_000)
+  const s = canvas.width / pw
+  const out: PageImageCrop[] = []
+  for (const b of boxes.slice(0, 40)) {
+    const sx = Math.max(0, Math.floor(b.x0 * s))
+    const sy = Math.max(0, Math.floor((ph - b.y1) * s))
+    const sw = Math.min(canvas.width - sx, Math.ceil((b.x1 - b.x0) * s))
+    const sh = Math.min(canvas.height - sy, Math.ceil((b.y1 - b.y0) * s))
+    if (sw < 2 || sh < 2) continue
+    const c = document.createElement('canvas')
+    c.width = sw
+    c.height = sh
+    c.getContext('2d')!.drawImage(canvas, sx, sy, sw, sh, 0, 0, sw, sh)
+    out.push({ x: b.x0, top: b.y1, width: b.x1 - b.x0, height: b.y1 - b.y0, png: await canvasToPng(c) })
+  }
+  return out
+}

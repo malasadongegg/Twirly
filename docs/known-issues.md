@@ -31,7 +31,7 @@ Severity: **H** blocks a public release · **M** should fix · **L** cosmetic or
 | P6 | L | BMP: RLE-compressed and OS/2 BMPs are rejected with a clear message. 1/4/8/16/24/32-bit uncompressed and bitfield BMPs are supported. |
 | P7 | L | PDF Compress recompresses JPEG and 8-bit RGB/gray Flate images (downscale > 2000 px, JPEG q72). It leaves CMYK/Indexed images, masks, predictor-encoded images and vector content alone, and refuses to output a file that is not smaller. Ghostscript-level font/vector optimization is not done. |
 | P8 | M | PDF → TXT has no OCR: scanned PDFs report "no text layer". |
-| P9 | M | Not implemented: office documents → PDF (LibreOffice), PDF redaction (deliberately disabled). PDF → DOCX carries text, paragraphs, headings and page breaks, but not fonts, bold/italic, images or tables. |
+| P9 | M | Not implemented: office documents → PDF (LibreOffice), PDF redaction (deliberately disabled). PDF → DOCX carries text, paragraphs, headings, page breaks and pictures (cropped from a page render and placed in reading order; text drawn over a picture is baked into it), but not fonts, bold/italic or tables. The picture placement is unit-tested but not yet verified in the real app. |
 | P10 | L | GIF export of long videos can be large; there is no length warning yet. |
 | P11 | L | FFmpeg is bundled (adds ~55 MB to the installer). Office → PDF needs Microsoft Office or LibreOffice; without either, Twirly offers a one-click LibreOffice install via winget (opens the download page if winget is missing). The real winget install has not been run in testing (only the offer/decline path is covered). |
 

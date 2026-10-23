@@ -9,7 +9,7 @@ import { OutputWriter, pageSuffix } from '@processing/output'
 import { runImageAction } from '@processing/images/image-job'
 import { imagesToPdf, loadPdf, merge, optimize, rebuild, rotateAll, split } from '@processing/pdf/pdf-ops'
 import { compressPdf } from '@processing/pdf/compress'
-import { toLines, toParagraphs, type TextRun } from '@core/pdf/paragraphs'
+import { placeImages, toLines, toParagraphs, type TextRun } from '@core/pdf/paragraphs'
 import { buildDocx, type DocxPage } from '@core/docx/docx'
 import { basename } from 'node:path'
 import { UserFacingError } from '@processing/errors'
@@ -210,12 +210,15 @@ async function pdfLayoutPages(ctx: JobContext, file: FileInfo, i: number): Promi
     for (let p = 0; p < pageCount; p++) {
       ctx.signal.throwIfAborted()
       const layout = await pdfWorker<{ width: number; height: number; runs: TextRun[] }>({ op: 'layout', docId, page: p })
-      out.push({ width: layout.width, height: layout.height, paragraphs: toParagraphs(toLines(layout.runs)) })
+      // Pictures are slotted into reading order; failing to find them never fails the page.
+      const found = await pdfWorker<{ images: { x: number; top: number; width: number; height: number; png: Uint8Array }[] }>({ op: 'images', docId, page: p }).catch(() => ({ images: [] }))
+      const images = found.images.map((im) => ({ data: im.png, x: im.x, top: im.top, width: im.width, height: im.height }))
+      out.push({ width: layout.width, height: layout.height, paragraphs: placeImages(toParagraphs(toLines(layout.runs)), images) })
       ctx.progress(i, (p + 1) / pageCount)
     }
     return out
   })
-  if (pages.every((pg) => pg.paragraphs.length === 0)) throw new UserFacingError(NO_TEXT_LAYER)
+  if (pages.every((pg) => !pg.paragraphs.some((q) => q.text.trim()))) throw new UserFacingError(NO_TEXT_LAYER)
   return pages
 }
 

@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { toLines, toParagraphs, type TextRun } from '@core/pdf/paragraphs'
+import { toLines, toParagraphs, type Paragraph, type TextRun } from '@core/pdf/paragraphs'
 import { buildDocx } from '@core/docx/docx'
 import { crc32 } from '@core/docx/zip'
 
@@ -101,4 +101,35 @@ describe('zip / docx', () => {
     expect(out).toContain('Page two text')
     expect(out).toContain('PAGES=2')
   }, 90_000)
+})
+
+describe('placeImages', () => {
+  const paras: Paragraph[] = [
+    { text: 'Above', heading: 0, y: 700 },
+    { text: 'Below', heading: 0, y: 500 },
+  ]
+  const img = (top: number) => ({ data: new Uint8Array([1]), x: 10, top, width: 100, height: 80 })
+
+  it('puts a picture between the paragraphs it sits between', async () => {
+    const { placeImages } = await import('@core/pdf/paragraphs')
+    const out = placeImages(paras, [img(650)])
+    expect(out.map((p) => (p.image ? '[img]' : p.text))).toEqual(['Above', '[img]', 'Below'])
+  })
+
+  it('keeps several pictures in top-to-bottom order and trailing ones last', async () => {
+    const { placeImages } = await import('@core/pdf/paragraphs')
+    const out = placeImages(paras, [img(300), img(650), img(600)])
+    expect(out.map((p) => (p.image ? `[${p.y}]` : p.text))).toEqual(['Above', '[650]', '[600]', 'Below', '[300]'])
+  })
+})
+
+describe('buildDocx with images', () => {
+  it('embeds the picture as a relationship and media part', () => {
+    const png = new Uint8Array([137, 80, 78, 71])
+    const bytes = buildDocx([{ width: 595, height: 842, paragraphs: [{ text: 'x', heading: 0 }, { text: '', heading: 0, image: { data: png, width: 800, height: 400 } }] }])
+    const text = Buffer.from(bytes).toString('latin1')
+    expect(text).toContain('word/media/image1.png')
+    expect(text).toContain('r:embed="rIdImg1"')
+    expect(text).toContain('Target="media/image1.png"')
+  })
 })
